@@ -1,0 +1,24 @@
+Package: markovitzRRR
+Title: Markovitz Portfolio Selection Via Reduced Rank Regression
+Version: 0.0.0.9000
+Date: 2023-09-18
+Maintainer: Alberto Quaini <alberto91quaini@gmail.com>
+Authors@R: 
+    person(given = "Alberto", family = "Quaini", 
+           email = "alberto91quaini@gmail.com", 
+           role = c("aut", "cre", "cph"),
+           comment = c(ORCID = "0000-0002-1251-0599"))
+Description: Lightweight efficient implementation of Markovitz portfolio 
+    selection via Reduced Rank Regression.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+LinkingTo: 
+    Rcpp,
+    RcppArmadillo
+Imports: 
+    Rcpp
+Depends: 
+    R (>= 2.10)
+LazyData: true
