@@ -3,9 +3,7 @@ test_that("Test MarkovitzRRR", {
   # simulate returns
   n_assets = 5
   n_obs = 20
-  mean_returns = rep(0, n_assets)
-  variance_returns = diag(1., n_assets)
-  returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
+  returns = matrix(stats::rnorm(n_assets * n_obs), n_obs, n_assets)
 
   lambda = 0.02
 

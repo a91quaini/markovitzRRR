@@ -1,7 +1,7 @@
 // Author: Alberto Quaini
 
 #include "MarkovitzRRR.h"
-#include "MarkovitzRRRSolver.h"
+#include "solver.h"
 
 Rcpp::List MarkovitzRRRCpp(
   const arma::mat& R,
@@ -51,8 +51,9 @@ Rcpp::List MarkovitzRRRCpp(
 
   return Rcpp::List::create(
     Rcpp::Named("solution") = solver.GetSolution(),
-    Rcpp::Named("objective_value") = solver.GetObjective(),
-    Rcpp::Named("status") = solver.GetStatus()
+    Rcpp::Named("objective") = solver.GetObjective(),
+    Rcpp::Named("status") = solver.GetStatus(),
+    Rcpp::Named("weights") = solver.GetOptimalPortfolioWeights()
   );
 
 }

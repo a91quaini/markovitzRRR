@@ -29,6 +29,8 @@ end_time_markovitz <- Sys.time()
 markovitz_solution$status
 # solution
 markovitz_solution$solution
+# plot objective function vs solver iterations
+PlotMarkovitzRRRObjective(markovitz_solution)
 
 ## compute CVX solution
 X = CVXR::Variable(n_assets, n_assets)
@@ -51,5 +53,5 @@ cat("MarkovitzRRR execution time:", end_time_markovitz - start_time_markovitz, "
 cat("CVX execution time:", end_time_cvx - start_time_cvx, "\n")
 
 # Print optimal values
-cat("MarkovitzRRR optimal value = ", round(markovitz_solution$objective_value[length(markovitz_solution$objective_value)], 4), "\n")
+cat("MarkovitzRRR optimal value = ", round(markovitz_solution$objective[length(markovitz_solution$objective)], 4), "\n")
 cat("CVX optimal value = ", round(cvx_solution$value, 4), "\n")

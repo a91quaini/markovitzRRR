@@ -9,3 +9,20 @@ CheckReturns = function(returns) {
   stopifnot("`returns` must not contain missing values (NA/NaN)" = !anyNA(returns))
 
 }
+
+#' @export
+PlotMarkovitzRRRObjective = function(results) {
+
+  if (!is.list(results) || !any(names(results) == "objective")) {
+    stop("Input must be a list containing an 'objective' numeric vector.")
+  }
+
+  plot(
+    x = seq_along(results$objective),
+    y = results$objective,
+    pch = 19,
+    xlab = "iteration",
+    ylab = "objective Function",
+  )
+
+}
