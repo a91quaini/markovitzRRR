@@ -15,9 +15,12 @@
 #' parameter values from smallest to largest.
 #' @param max_iter numeric solver parameter indicating the maximum number of
 #' iterations. Default is `2000`
-#' @param step_size_type character indicating the type of step size: `'s'` for
-#' square summable but not summable and `'c'` for constant step size, any other
-#' character gives a summable vanishing step size. Default is `'s'`.
+#' @param step_size_type character indicating the type of step size: `'c'` for
+#' constant step size equal to `step_size_constant`; `'s'` for square summable
+#' but not summable given by `step_size_constant / (iteration + 1)`; `'p'` for
+#' modified Polyak given by `step_size_constant / ||subgradient||_F^2`; any
+#' other character gives a summable vanishing step size given by
+#' `step_size_constant / sqrt(iteration + 1)`. Default is `'s'`.
 #' @param step_size_constant numeric constant determining the step size. Default
 #' is `1.e-3`
 #' @param tolerance numeric tolerance check for `||X_k+1 - X_k||_F^2 / N^2`.
@@ -50,12 +53,12 @@ MarkovitzRRR = function(
   }
 
   return(.Call(`_markovitzRRR_MarkovitzRRRCpp`,
-               returns,
-               penalty_parameters,
-               max_iter,
-               step_size_type,
-               step_size_constant,
-               tolerance
+    returns,
+    penalty_parameters,
+    max_iter,
+    step_size_type,
+    step_size_constant,
+    tolerance
   ))
 
 }

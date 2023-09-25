@@ -8,7 +8,7 @@
 
 Author: Alberto Quaini
 
-Efficient implementation of Markovitz optimal portfolio via Reduced Rank Regression
+Efficient implementation of Markovitz optimal portfolio selection via Reduced Rank Regression.
 
 ## Installation
 
@@ -36,7 +36,74 @@ Windows](https://cran.r-project.org/bin/windows/Rtools/).
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
-library(markovitzRRR)
-## basic example code
+## simulate asset returns
+set.seed(2)
+n_assets = 20
+n_obs = 100
+mean_returns = rep(0, n_assets)
+variance_returns = diag(1., n_assets)
+returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
+
+# set penalty parameter lambda
+lambda = .05
+
+## compute Markovitz RRR solution
+start_time_markovitz <- Sys.time()
+# step_size_type can be:
+# `'c'` for constant step size equal to `step_size_constant`;
+# `'s'` for square summable but not summable given by `step_size_constant / (iteration + 1)`;
+# `'p'` for modified Polyak given by `step_size_constant / ||subgradient||_F^2`;
+# any other character gives a summable vanishing step size given by
+# `step_size_constant / sqrt(iteration + 1)`.
+markovitz_solution = MarkovitzRRR(
+  returns,
+  lambda,
+  max_iter = 10000,
+  step_size_type ='v',
+  step_size_constant = .05e-1
+)
+end_time_markovitz <- Sys.time()
+# solver status
+markovitz_solution$status
+# solution
+markovitz_solution$solution
+
+## compute CVX solution
+X = CVXR::Variable(n_assets, n_assets)
+cost = .5 * CVXR::sum_squares(returns - returns %*% X)
+penalty = lambda * CVXR::norm_nuc(returns %*% X)
+constraint = list(CVXR::diag(X) == 0)
+
+problem = CVXR::Problem(CVXR::Minimize(cost + penalty), constraint)
+
+# Measure execution time for CVX
+start_time_cvx <- Sys.time()
+cvx_solution = CVXR::solve(problem, reltol = 1e-8, abstol = 1e-8, num_iter = 10000)
+end_time_cvx <- Sys.time()
+# cvx solution
+cvx_solution$getValue(X)
+
+## Results
+# Print the execution times
+cat("MarkovitzRRR execution time:", end_time_markovitz - start_time_markovitz, "\n")
+cat("CVX execution time:", end_time_cvx - start_time_cvx, "\n")
+
+# Print optimal values
+cat("MarkovitzRRR optimal value = ", round(markovitz_solution$objective_value[length(markovitz_solution$objective_value)], 4), "\n")
+cat("CVX optimal value = ", round(cvx_solution$value, 4), "\n")
 ```
+
+Execution time:
+``` r
+MarkovitzRRR execution time: 0.3132079 
+CVX execution time: 15.2143 
+```
+
+Optimal value:
+``` r
+MarkovitzRRR optimal value =  821.6312
+CVX optimal value =  821.6312
+```
+
+
 

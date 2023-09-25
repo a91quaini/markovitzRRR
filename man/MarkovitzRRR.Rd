@@ -24,9 +24,12 @@ parameter values from smallest to largest.}
 \item{max_iter}{numeric solver parameter indicating the maximum number of
 iterations. Default is \code{2000}}
 
-\item{step_size_type}{character indicating the type of step size: \code{'s'} for
-square summable but not summable and \code{'c'} for constant step size, any other
-character gives a summable vanishing step size. Default is \code{'s'}.}
+\item{step_size_type}{character indicating the type of step size: \code{'c'} for
+constant step size equal to \code{step_size_constant}; \code{'s'} for square summable
+but not summable given by \code{step_size_constant / (iteration + 1)}; \code{'p'} for
+modified Polyak given by \verb{step_size_constant / ||subgradient||_F^2}; any
+other character gives a summable vanishing step size given by
+\code{step_size_constant / sqrt(iteration + 1)}. Default is \code{'s'}.}
 
 \item{step_size_constant}{numeric constant determining the step size. Default
 is \code{1.e-3}}
