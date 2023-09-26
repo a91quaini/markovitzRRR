@@ -10,6 +10,14 @@ CheckReturns = function(returns) {
 
 }
 
+#' Plot Markovitz RRR solver objective function evolution
+#'
+#' @name MarkovitzRRR
+#' @description Plots the  MarkovitzRRR objective function value at each iteration
+#'
+#' @param results list containing a numeric vector `objective` with the
+#' markovitzRRR objective function values at each iteration.
+#'
 #' @export
 PlotMarkovitzRRRObjective = function(results) {
 

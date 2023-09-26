@@ -2,15 +2,15 @@ test_that("Test MarkovitzRRR", {
 
   # simulate returns
   n_assets = 5
-  n_obs = 20
-  returns = matrix(stats::rnorm(n_assets * n_obs), n_obs, n_assets)
+  returns = markovitzRRR::returns[1:20, 2:(n_assets + 1)]
 
-  lambda = 0.02
+  lambda = 0.2
 
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda
+      lambda,
+      max_iter = 100
     )
   )
 
