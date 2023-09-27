@@ -8,10 +8,10 @@
 MarkovitzRRR(
   returns,
   penalty_parameters,
-  max_iter = 10000,
-  step_size_type = "s",
+  penalty_type = "d",
+  step_size_type = "d",
   step_size_constant = 0.001,
-  tolerance = 1e-15,
+  max_iter = 10000,
   check_arguments = TRUE
 )
 
@@ -21,24 +21,26 @@ PlotMarkovitzRRRObjective(results)
 \item{returns}{\verb{n_observations x n_returns}-dimensional matrix of test asset
 excess returns.}
 
-\item{penalty_parameters}{\code{n_parameters}-dimensional vector of penalty
-parameter values from smallest to largest.}
+\item{penalty_parameters}{in principle this is a \code{n_parameters}-dimensional
+vector of penalty
+parameter values from smallest to largest; for now it is just a positive number.}
 
-\item{max_iter}{numeric solver parameter indicating the maximum number of
-iterations. Default is \code{2000}}
+\item{penalty_type}{character indicating the type of penalty function:  \code{'d'}
+for default, i.e., penalty given by \verb{||RX||_*}; \code{'a'} for alternative, i.e.,
+penalty given by \verb{||X||_*}. Default is \code{'d'}.}
 
-\item{step_size_type}{character indicating the type of step size: \code{'c'} for
-constant step size equal to \code{step_size_constant}; \code{'s'} for square summable
-but not summable given by \code{step_size_constant / (iteration + 1)}; \code{'p'} for
-modified Polyak given by \verb{step_size_constant / ||subgradient||_F^2}; any
-other character gives a summable vanishing step size given by
-\code{step_size_constant / sqrt(iteration + 1)}. Default is \code{'s'}.}
+\item{step_size_type}{character indicating the type of step size: \code{'d'} for
+default, i.e., not summable vanishing given by \code{step_size_constant / sqrt(iter + 1)};
+\code{'c'} for constant step size equal to \code{step_size_constant}; \code{'s'} for square
+summable but not summable given by \code{step_size_constant / (iteration + 1)};
+\code{'p'} for modified Polyak given by \verb{step_size_constant / ||subgradient||_F^2}.
+Default is \code{'d'}.}
 
 \item{step_size_constant}{numeric constant determining the step size. Default
 is \code{1.e-3}}
 
-\item{tolerance}{numeric tolerance check for \verb{||X_k+1 - X_k||_F^2 / N^2}.
-Default is 1.e-15.}
+\item{max_iter}{numeric solver parameter indicating the maximum number of
+iterations. Default is \code{10000}.}
 
 \item{check_arguments}{boolean \code{TRUE} if you want to check function arguments;
 \code{FALSE} otherwise. Default is \code{TRUE}.}
@@ -47,7 +49,7 @@ Default is 1.e-15.}
 markovitzRRR objective function values at each iteration.}
 }
 \value{
-a list.
+a list containing
 }
 \description{
 Computes Markovitz RRR

@@ -9,8 +9,23 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
+      lambda
+    )
+  )
+
+  expect_no_error(
+    MarkovitzRRR(
+      returns,
       lambda,
       max_iter = 100
+    )
+  )
+
+  expect_no_error(
+    MarkovitzRRR(
+      returns,
+      lambda,
+      penalty_type = 'a'
     )
   )
 
@@ -30,14 +45,14 @@ test_that("Test MarkovitzRRR", {
     )
   )
 
-  expect_equal(
-    MarkovitzRRR(
-      returns,
-      lambda,
-      tolerance = 1.e-6
-    )$status,
-    "solved"
-  )
+  # expect_equal(
+  #   MarkovitzRRR(
+  #     returns,
+  #     lambda,
+  #     tolerance = 1.e-6
+  #   )$status,
+  #   "solved"
+  # )
 
   expect_length(
     MarkovitzRRR(
@@ -57,6 +72,13 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
+      lambda = -0.3
+    )
+  )
+
+  expect_error(
+    MarkovitzRRR(
+      returns,
       lambda = "s"
     )
   )
@@ -65,7 +87,7 @@ test_that("Test MarkovitzRRR", {
     MarkovitzRRR(
       returns,
       lambda,
-      max_iter = "s"
+      penalty_type = 'c'
     )
   )
 
@@ -89,8 +111,16 @@ test_that("Test MarkovitzRRR", {
     MarkovitzRRR(
       returns,
       lambda,
-      tolerance = "s"
+      max_iter = "s"
     )
   )
+
+  # expect_error(
+  #   MarkovitzRRR(
+  #     returns,
+  #     lambda,
+  #     tolerance = "s"
+  #   )
+  # )
 
 })

@@ -8,6 +8,12 @@
 //// Definition of MarkovitzRRRSolver
 
 class MarkovitzRRRSolver {
+  // optimization solver for following optimization problem over R^(NxN)
+  // minimize_X {0.5 ||R - R * X||_F^2 + lambda ||R * X||_* | diag(X) = 0}
+  // or the alternative
+  // minimize_X {0.5 ||R - R * X||_F^2 + lambda ||X||_* | diag(X) = 0},
+  // where ||.||_F denotes the Frobenious norm and ||.||_* the nuclear norm
+
   // members directly accessible only inside the class
 private:
 
@@ -26,39 +32,57 @@ private:
   // penalty parameter
   double lambda;
   // objective function
-  std::vector<double> objective;
+  arma::vec objective;
   // subgradient
   arma::mat subgradient;
-  // tolerance
-  const double tolerance;
-  // solver status
-  std::string status;
-  // solver parameters
+  // function computing the subgradient
+  std::function<void(void)> ComputeSubgradient;
+  // useful for subgradient
+  arma::mat U, V;
+  arma::vec sv;
+  // step size
   const double step_size_constant;
+  double step_size;
   // function computing the step size
-  std::function<double(int)> ComputeStepSize;
+  std::function<void(void)> ComputeStepSize;
+  // iterations
+  const unsigned int max_iter;
+  unsigned int iter;
+  // // solver status
+  // std::string status;
+  // // tolerance
+  // const double tolerance;
 
   // accessible members
 public:
 
   // class constructor
+
   explicit MarkovitzRRRSolver(
     const arma::mat& R,
     const arma::mat& X0,
     const double lambda,
-    const char step_size_type,
-    const double step_size_constant,
-    const double tolerance
+    const char penalty_type = 'd',
+    const char step_size_type = 'd',
+    const double step_size_constant = 1.e-3,
+    const unsigned int max_iter = 10000
+    // const double tolerance
   );
 
-  // Compute the projected subgradient step based on the current iteration
-  void ProjectedSubgradientStep(unsigned int iter);
+  // Solve the optimization problem using the projected subgradient path
+  void Solve();
 
-  // compute the subgradient at X0
-  void ComputeSubgradient();
+  // Compute the projected subgradient step based on the current iteration
+  void ProjectedSubgradientStep(const unsigned int iter);
+
+  // // compute the subgradient at X0
+  // void ComputeSubgradient();
 
   // compute the objective function at a given X
   double ComputeObjective(const arma::mat& X) const;
+
+  // Set function computing the step size at class' initialization
+  std::function<void(void)> SetStepSizeFunction(const char step_size_type) const;
 
   // set the penalty parameter lambda
   void SetLambda(double lambda);
@@ -67,13 +91,13 @@ public:
   void SetX0ToHollow1OverN();
 
   // get the vector of objective function evaluation at each iteration
-  const std::vector<double>& GetObjective() const;
+  const arma::vec& GetObjective() const;
 
-  // get solver status "unsolved" or "solved"
-  std::string GetStatus() const;
+  // // get solver status "unsolved" or "solved"
+  // std::string GetStatus() const;
 
   // get the solver solution
-  arma::mat GetSolution() const;
+  const arma::mat& GetSolution() const;
 
   // compute the optimal portfolio weights
   arma::rowvec GetOptimalPortfolioWeights() const;

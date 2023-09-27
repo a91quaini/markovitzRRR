@@ -12,18 +12,18 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // MarkovitzRRRCpp
-Rcpp::List MarkovitzRRRCpp(const arma::mat& R, const double lambda, const unsigned int max_iter, const char step_size_type, const double step_size_constant, const double tolerance);
-RcppExport SEXP _markovitzRRR_MarkovitzRRRCpp(SEXP RSEXP, SEXP lambdaSEXP, SEXP max_iterSEXP, SEXP step_size_typeSEXP, SEXP step_size_constantSEXP, SEXP toleranceSEXP) {
+Rcpp::List MarkovitzRRRCpp(const arma::mat& R, const double lambda, const char penalty_type, const char step_size_type, const double step_size_constant, const unsigned int max_iter);
+RcppExport SEXP _markovitzRRR_MarkovitzRRRCpp(SEXP RSEXP, SEXP lambdaSEXP, SEXP penalty_typeSEXP, SEXP step_size_typeSEXP, SEXP step_size_constantSEXP, SEXP max_iterSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::mat& >::type R(RSEXP);
     Rcpp::traits::input_parameter< const double >::type lambda(lambdaSEXP);
-    Rcpp::traits::input_parameter< const unsigned int >::type max_iter(max_iterSEXP);
+    Rcpp::traits::input_parameter< const char >::type penalty_type(penalty_typeSEXP);
     Rcpp::traits::input_parameter< const char >::type step_size_type(step_size_typeSEXP);
     Rcpp::traits::input_parameter< const double >::type step_size_constant(step_size_constantSEXP);
-    Rcpp::traits::input_parameter< const double >::type tolerance(toleranceSEXP);
-    rcpp_result_gen = Rcpp::wrap(MarkovitzRRRCpp(R, lambda, max_iter, step_size_type, step_size_constant, tolerance));
+    Rcpp::traits::input_parameter< const unsigned int >::type max_iter(max_iterSEXP);
+    rcpp_result_gen = Rcpp::wrap(MarkovitzRRRCpp(R, lambda, penalty_type, step_size_type, step_size_constant, max_iter));
     return rcpp_result_gen;
 END_RCPP
 }

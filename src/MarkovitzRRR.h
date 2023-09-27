@@ -9,10 +9,11 @@
 Rcpp::List MarkovitzRRRCpp(
   const arma::mat& R,
   const double lambda,
-  const unsigned int max_iter = 10000,
-  const char step_size_type = 's',
+  const char penalty_type = 'd',
+  const char step_size_type = 'd',
   const double step_size_constant = 1.e-3,
-  const double tolerance = 1.e-15
+  const unsigned int max_iter = 10000
 );
+// const double tolerance = 1.e-15
 
 #endif

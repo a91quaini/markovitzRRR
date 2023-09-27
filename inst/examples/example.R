@@ -21,9 +21,6 @@ start_time_markovitz <- Sys.time()
 markovitz_solution = MarkovitzRRR(
   returns,
   lambda,
-  max_iter = 10000,
-  step_size_type ='s',
-  step_size_constant = .1e-1
 )
 end_time_markovitz <- Sys.time()
 # solver status
