@@ -8,7 +8,7 @@ returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
 # returns = markovitzRRR::returns[,-1]
 
 # set penalty parameter lambda
-lambda = .5
+lambda = .05
 
 ## compute Markovitz RRR solution
 start_time_markovitz <- Sys.time()
@@ -21,7 +21,13 @@ start_time_markovitz <- Sys.time()
 markovitz_solution = MarkovitzRRR(
   returns,
   lambda,
+  penalty_type = 'd',
+  step_size_type = 's',
+  step_size_constant = .4e-2
 )
+PlotMarkovitzRRRObjective(markovitz_solution)
+markovitz_solution$objective[length(markovitz_solution$objective)]
+
 end_time_markovitz <- Sys.time()
 # solver status
 markovitz_solution$status

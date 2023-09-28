@@ -87,7 +87,7 @@ test_that("Test MarkovitzRRR", {
     MarkovitzRRR(
       returns,
       lambda,
-      penalty_type = 'c'
+      penalty_type = c(2, 3)
     )
   )
 
@@ -112,6 +112,16 @@ test_that("Test MarkovitzRRR", {
       returns,
       lambda,
       max_iter = "s"
+    )
+  )
+
+  # test the subgradient computation method used when N > 0.9 T
+  n_assets = 19
+  returns = markovitzRRR::returns[1:20, 2:(n_assets + 1)]
+  expect_no_error(
+    MarkovitzRRR(
+      returns,
+      lambda
     )
   )
 

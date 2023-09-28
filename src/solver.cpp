@@ -22,7 +22,7 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   X1(X0),
   Xbest(X0),
   lambda(lambda),
-  objective(arma::vec(max_iter)),
+  objective(arma::vec(max_iter + 1)),
   subgradient(X0),
   step_size_constant(step_size_constant),
   max_iter(max_iter),
@@ -109,7 +109,6 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
 
   case 'a': // alternative penalty: lambda ||X||_*
     ComputeSubgradient = [&]() -> void {
-      Rcpp::Rcout << "ciao\n";
 
       // compute svd(X)
       arma::svd(U, sv, V, X0);
@@ -127,7 +126,6 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
     if ((double)N/T >= .9) {
 
       ComputeSubgradient = [&]() -> void {
-        Rcpp::Rcout << "hola\n";
 
         // compute R * X0
         const arma::mat RX0 = R * X0;
@@ -135,12 +133,11 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
         // compute svd(R * X)
         arma::svd(U, sv, V, RX0);
 
-        Rcpp::Rcout << "hey1\n";
         // element in the subgradient of
         // 0.5 ||R - RX||_F^2 + lambda ||R * X||_*
         // with respect to X
-        subgradient = lambda * U.cols(0, N-1) * V.t() + R.t() * (R * X0 - R);
-        Rcpp::Rcout << "you1\n";
+        subgradient = lambda * R.t() * U.cols(0, N-1) * V.t() +
+          R.t() * (R * X0 - R);
 
       };
     // otherwise compute subgradient according to svd(R), qr(X'Vr) and svd(ASr)
@@ -151,7 +148,6 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
       U.shed_cols(N, T-1);
 
       ComputeSubgradient = [&]() -> void {
-        Rcpp::Rcout << "salut\n";
 
         // compute qr(X'V)
         arma::mat Q, A;
@@ -166,7 +162,8 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
         // element in the subgradient of
         // 0.5 ||R - RX||_F^2 + lambda ||R * X||_*
         // with respect to X
-        subgradient = lambda * (U * V1)  * (Q * U1).t() + R.t() * (R * X0 - R);
+        subgradient = lambda * R.t() * (U * V1)  * (Q * U1).t() +
+          R.t() * (R * X0 - R);
 
       };
 
@@ -202,18 +199,14 @@ void MarkovitzRRRSolver::Solve() {
 // Compute one projected subgradient step based on the current iteration
 void MarkovitzRRRSolver::ProjectedSubgradientStep(const unsigned int iter) {
 
-  Rcpp::Rcout << "hey\n";
   // compute the subgradient, stored in `this->subgradient`
   ComputeSubgradient();
-  Rcpp::Rcout << "you\n";
 
   // compute the step size, stored in `this->step_size`
   ComputeStepSize();
-  Rcpp::Rcout << "out\n";
 
   // update `X1`, remember that `X1` = `X0` before this computation
   X1 -= step_size * subgradient;
-  Rcpp::Rcout << "here\n";
 
   // project `X1` on the space of hollow matrices
   X1.diag().zeros();
