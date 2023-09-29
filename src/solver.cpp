@@ -215,34 +215,8 @@ void MarkovitzRRRSolver::ComputeProjectedSubgradientStep(const unsigned int iter
   // compute the subgradient, stored in `this->subgradient`
   ComputeSubgradient();
 
-  /////////////////////////////////////////////////////////////////////
-  // Rcpp::Rcout << "\n Outside ComputeSubgradient \n\n";
-  // Rcpp::Rcout << "R = " << R.row(0) << "\n";
-  // Rcpp::Rcout << "X0 = " << X0.row(0) << "\n";
-  // Rcpp::Rcout << "lambda = " << lambda << "\n";
-  // // compute R * X0
-  // const arma::mat RX0 = R * X0;
-  //
-  // // compute svd(R * X)
-  // arma::svd(U, sv, V, RX0);
-  //
-  // // element in the subgradient of
-  // // 0.5 ||R - RX||_F^2 + lambda ||R * X||_*
-  // // with respect to X
-  // subgradient = lambda * R.t() * U.cols(0, N-1) * V.t() +
-  //   R.t() * (R * X0 - R);
-  // Rcpp::Rcout << "subgradient = " << subgradient.row(0) << "\n";
-  /////////////////////////////////////////////////////////////////////
-  // compute the step size, stored in `this->step_size`
-
-  // ComputeStepSize();
-  /////////////////////////////////////////////////////////////////////
-  // step_size = step_size_constant / std::sqrt(iter + 1);
-  /////////////////////////////////////////////////////////////////////
-
   // update `X1`, remember that `X1` = `X0` before this computation
   X1 -= ComputeStepSize() * subgradient;
-  // Rcpp::Rcout << "step_size = " << step_size << "\n";
 
   // project `X1` on the space of hollow matrices
   X1.diag().zeros();

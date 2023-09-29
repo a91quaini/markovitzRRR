@@ -60,15 +60,14 @@ start_time_markovitz <- Sys.time()
 markovitz_solution = MarkovitzRRR(
   returns,
   lambda,
-  max_iter = 10000,
-  step_size_type ='v',
-  step_size_constant = .05e-1
+  penalty_type = 'd',
+  step_size_type = 'd',
+  step_size_constant = .05e-1,
+  max_iter = 500
 )
 end_time_markovitz <- Sys.time()
-# solver status
-markovitz_solution$status
-# solution
-markovitz_solution$solution
+# plot objective function vs solver iterations
+PlotMarkovitzRRRObjective(markovitz_solution)
 
 ## compute CVX solution
 X = CVXR::Variable(n_assets, n_assets)
@@ -82,8 +81,6 @@ problem = CVXR::Problem(CVXR::Minimize(cost + penalty), constraint)
 start_time_cvx <- Sys.time()
 cvx_solution = CVXR::solve(problem, reltol = 1e-8, abstol = 1e-8, num_iter = 10000)
 end_time_cvx <- Sys.time()
-# cvx solution
-cvx_solution$getValue(X)
 
 ## Results
 # Print the execution times
@@ -91,21 +88,28 @@ cat("MarkovitzRRR execution time:", end_time_markovitz - start_time_markovitz, "
 cat("CVX execution time:", end_time_cvx - start_time_cvx, "\n")
 
 # Print optimal values
-cat("MarkovitzRRR optimal value = ", round(markovitz_solution$objective_value[length(markovitz_solution$objective_value)], 4), "\n")
+cat("MarkovitzRRR optimal value = ", round(min(markovitz_solution$objective), 4), "\n")
 cat("CVX optimal value = ", round(cvx_solution$value, 4), "\n")
+
+cat("Distance between MarkovitzRRR and CVX solutions = ",
+    round(sum((markovitz_solution$solution - cvx_solution$getValue(X))^2), 15), "\n")
 ```
 
 Execution time:
 ``` r
-MarkovitzRRR execution time: 0.3132079 
-CVX execution time: 15.2143 
+MarkovitzRRR execution time: 0.1697729 
+CVX execution time: 15.35975 
 ```
 
 Optimal value:
 ``` r
-MarkovitzRRR optimal value =  821.6312
-CVX optimal value =  821.6312
+MarkovitzRRR optimal value =  821.6312 
+CVX optimal value =  821.6312 
+Distance between MarkovitzRRR and CVX solutions =  1.827446e-07 
 ```
 
+<p float="left">
+<img src="inst/examples/solver_path.png" width="400" />
+</p>
 
-
+## References
