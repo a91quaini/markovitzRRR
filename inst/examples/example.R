@@ -1,11 +1,10 @@
 ## simulate asset returns
 set.seed(2)
-n_assets = 3
-n_obs = 20
+n_assets = 20
+n_obs = 100
 mean_returns = rep(0, n_assets)
 variance_returns = diag(1., n_assets)
 returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
-# returns = markovitzRRR::returns[,-1]
 
 # set penalty parameter lambda
 lambda = .05
@@ -22,20 +21,18 @@ markovitz_solution = MarkovitzRRR(
   returns,
   lambda,
   penalty_type = 'd',
-  step_size_type = 's',
-  step_size_constant = .4e-2
+  step_size_type = 'd',
+  step_size_constant = .05e-1,
+  max_iter = 10000
 )
-PlotMarkovitzRRRObjective(markovitz_solution)
-markovitz_solution$objective[length(markovitz_solution$objective)]
-
 end_time_markovitz <- Sys.time()
 # solver status
-markovitz_solution$status
+# markovitz_solution$status
 # solution
 markovitz_solution$solution
 # plot objective function vs solver iterations
 PlotMarkovitzRRRObjective(markovitz_solution)
-
+tail(markovitz_solution$objective)
 
 ## compute CVX solution
 X = CVXR::Variable(n_assets, n_assets)
@@ -58,5 +55,5 @@ cat("MarkovitzRRR execution time:", end_time_markovitz - start_time_markovitz, "
 cat("CVX execution time:", end_time_cvx - start_time_cvx, "\n")
 
 # Print optimal values
-cat("MarkovitzRRR optimal value = ", round(markovitz_solution$objective[length(markovitz_solution$objective)], 4), "\n")
+cat("MarkovitzRRR optimal value = ", round(min(markovitz_solution$objective), 4), "\n")
 cat("CVX optimal value = ", round(cvx_solution$value, 4), "\n")

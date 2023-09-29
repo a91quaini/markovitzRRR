@@ -42,9 +42,8 @@ private:
   arma::vec sv;
   // step size
   const double step_size_constant;
-  double step_size;
   // function computing the step size
-  std::function<void(void)> ComputeStepSize;
+  std::function<double(void)> ComputeStepSize;
   // iterations
   const unsigned int max_iter;
   unsigned int iter;
@@ -73,16 +72,23 @@ public:
   void Solve();
 
   // Compute the projected subgradient step based on the current iteration
-  void ProjectedSubgradientStep(const unsigned int iter);
-
-  // // compute the subgradient at X0
-  // void ComputeSubgradient();
+  void ComputeProjectedSubgradientStep(const unsigned int iter);
 
   // compute the objective function at a given X
   double ComputeObjective(const arma::mat& X) const;
 
-  // Set function computing the step size at class' initialization
-  std::function<void(void)> SetStepSizeFunction(const char step_size_type) const;
+  // compute `step_size` at the current iteration
+  std::function<double(void)> SetStepSizeFunction(const char step_size_type) const;
+  double ComputeStepSizeConstant() const;
+  double ComputeStepSizeNotSummableVanishing() const;
+  double ComputeStepSizeSquareSummableNotSummable() const;
+  double ComputeStepSizeModifiedPolyak() const;
+
+  // compute `subgradient` at the current iteration
+  std::function<void(void)> SetSubgradientFunction(const char penalty_type);
+  void ComputeSubgradientForLargeN();
+  void ComputeSubgradientForSmallN();
+  void ComputeSubgradientAlternative();
 
   // set the penalty parameter lambda
   void SetLambda(double lambda);
@@ -92,9 +98,6 @@ public:
 
   // get the vector of objective function evaluation at each iteration
   const arma::vec& GetObjective() const;
-
-  // // get solver status "unsolved" or "solved"
-  // std::string GetStatus() const;
 
   // get the solver solution
   const arma::mat& GetSolution() const;

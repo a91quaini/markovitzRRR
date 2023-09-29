@@ -23,43 +23,27 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   Xbest(X0),
   lambda(lambda),
   objective(arma::vec(max_iter + 1)),
-  subgradient(X0),
+  // subgradient(X0),
+  ComputeSubgradient(SetSubgradientFunction(penalty_type)),
   step_size_constant(step_size_constant),
+  ComputeStepSize(SetStepSizeFunction(step_size_type)),
   max_iter(max_iter),
-  iter(1)
-  // set ComputeStepSize function depending on the step_size_type
-  // If step_size_type = 'c' for constant, then the returned function computes a
-  // constant step size.
-  // If step_size_type = 's' for square summable, then the returned function
-  // computes a square summable but not summable step size.
-  // Otherwise the function computes a not summable vanishing step size.
-  // Default is step_size_type = 's'.
-  // ComputeStepSize(
-  //   [this, step_size_type](const unsigned int iter) -> double {
-  //     switch (step_size_type) {
-  //     case 'c': // Constant step size
-  //       return this->step_size_constant;
-  //     case 's': // Square summable not summable
-  //       return this->step_size_constant / (iter + 1);
-  //     case 'p': // (modified) Polyak
-  //       {
-  //         return this->step_size_constant / arma::sum(arma::sum(arma::square(
-  //             this->subgradient
-  //         )));
-  //       }
-  //     default:  // Not summable vanishing
-  //       return this->step_size_constant / std::sqrt(iter + 1);
-  //     }
-  //   }
-  // ),
-  // set tolerance to the square root of the machine epsilon for double
-  // tolerance(tolerance), // std::numeric_limits<double>::epsilon()
-  // initialize status as "unsolved"
-  // status("unsolved"),
+  iter(0)
 {
 
   // compute the objective function at `X0`
-  objective(0) = ComputeObjective(X0);
+  objective(iter) = ComputeObjective(X0);
+
+  // if N is small compared to T, the `ComputeSubgradient` function assumes
+  // that the svd of R is computed and stored in U, sv and V
+  if ((double)N/T < .9) {
+
+    // compute svd(R) once
+    arma::svd(U, sv, V, R);
+    // remove the last (T - N) columns from U
+    U.shed_cols(N, T-1);
+
+  }
 
   // set `ComputeStepSize` according to `step_size_type`:
   // if `step_size_type` = 'c' for constant, then the returned function computes a
@@ -67,36 +51,53 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   // if `step_size_type` = 's' for square summable, then the returned function
   // computes a square summable but not summable step size.
   // otherwise the function computes a not summable vanishing step size.
-  // default is `step_size_type` = 's'.
-  switch(step_size_type) {
+  // default is `step_size_type` = 'd'.
+  // switch (step_size_type) {
+  //
+  // case 'c':
+  //   ComputeStepSize = std::bind(&MarkovitzRRRSolver::ComputeStepSizeConstant, this);
+  //   break;
+  //
+  // case 's':
+  //   ComputeStepSize = std::bind(&MarkovitzRRRSolver::ComputeStepSizeSquareSummableNotSummable, this);
+  //   break;
+  //
+  // default:
+  //   ComputeStepSize = std::bind(&MarkovitzRRRSolver::ComputeStepSizeNotSummableVanishing, this);
+  //   break;
+  // }
 
-  case 'c': // Constant step size
-    step_size = step_size_constant;
-    // ComputeStepSize does nothing
-    ComputeStepSize = [&]() -> void {};
-    break;
 
-  case 's': // Square summable not summable
-    ComputeStepSize = [&]() -> void {
-      step_size = step_size_constant / (iter + 1);
-    };
-    break;
-
-  case 'p': // (modified) Polyak
-    ComputeStepSize = [&]() -> void {
-      step_size = step_size_constant / arma::sum(arma::sum(arma::square(
-          subgradient
-      )));
-    };
-    break;
-
-  default:  // Not summable vanishing
-    ComputeStepSize = [&]() -> void {
-      step_size = step_size_constant / std::sqrt(iter + 1);
-    };
-    break;
-
-  }
+  // switch(step_size_type) {
+  //
+  // case 'c': // Constant step size
+  //   step_size = step_size_constant;
+  //   // ComputeStepSize does nothing
+  //   ComputeStepSize = [&]() -> void {};
+  //   break;
+  //
+  // case 's': // Square summable not summable
+  //   ComputeStepSize = [this, step_size_constant]() -> void {
+  //     step_size = step_size_constant / (iter + 1);
+  //   };
+  //   break;
+  //
+  // case 'p': // (modified) Polyak
+  //   ComputeStepSize = [this, step_size_constant]() -> void {
+  //     step_size = (
+  //       step_size_constant + objective(iter - 1) - arma::min(objective.head(iter))
+  //     ) / arma::norm(subgradient, "fro"); // arma::sum(arma::sum(arma::square(subgradient)));
+  //   };
+  //   break;
+  //
+  // default:  // Not summable vanishing
+  //   ComputeStepSize = [this, step_size_constant]() -> void {
+  //     step_size = step_size_constant / std::sqrt(iter + 1);
+  //
+  //   };
+  //   break;
+  //
+  // }
 
   // set `ComputeSubgradient` according to `penalty_type`:
   // if `penalty_type` = 'a' for alternative, then the subgradient accounts for
@@ -105,72 +106,86 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   // one computing each time `svd(R * X)=USV'`, and the other one computing once
   // `svd(R)=USV'` and each time computing `qr(X'V)=QA` and `svd(AS)`.
   // the latter option is desirable when T>>N.
-  switch(penalty_type) {
-
-  case 'a': // alternative penalty: lambda ||X||_*
-    ComputeSubgradient = [&]() -> void {
-
-      // compute svd(X)
-      arma::svd(U, sv, V, X0);
-
-      // element in the subgradient of
-      // 0.5 ||R - RX||_F^2 + lambda ||X||_*
-      // with respect to X
-      subgradient = lambda * U * V.t() + R.t() * (R * X0 - R);
-
-    };
-    break;
-
-  default:
-    // if N/T >= .9, then compute subgradient according to svd(R * X)
-    if ((double)N/T >= .9) {
-
-      ComputeSubgradient = [&]() -> void {
-
-        // compute R * X0
-        const arma::mat RX0 = R * X0;
-
-        // compute svd(R * X)
-        arma::svd(U, sv, V, RX0);
-
-        // element in the subgradient of
-        // 0.5 ||R - RX||_F^2 + lambda ||R * X||_*
-        // with respect to X
-        subgradient = lambda * R.t() * U.cols(0, N-1) * V.t() +
-          R.t() * (R * X0 - R);
-
-      };
-    // otherwise compute subgradient according to svd(R), qr(X'Vr) and svd(ASr)
-    } else {
-      // compute svd(R) once
-      arma::svd(U, sv, V, R);
-      // remove the last (T - N) columns from U
-      U.shed_cols(N, T-1);
-
-      ComputeSubgradient = [&]() -> void {
-
-        // compute qr(X'V)
-        arma::mat Q, A;
-        arma::qr(Q, A, X0.t() * V);
-
-        // compute svd(A * S)
-        arma::mat U1, V1;
-        arma::vec sv1;
-
-        arma::svd(U1, sv1, V1, A * arma::diagmat(sv));
-
-        // element in the subgradient of
-        // 0.5 ||R - RX||_F^2 + lambda ||R * X||_*
-        // with respect to X
-        subgradient = lambda * R.t() * (U * V1)  * (Q * U1).t() +
-          R.t() * (R * X0 - R);
-
-      };
-
-    }
-    break;
-
-  }
+  // switch(penalty_type) {
+  //
+  // case 'a': // alternative penalty: lambda ||X||_*
+  //   ComputeSubgradient = [&]() -> void {
+  //
+  //     // compute svd(X)
+  //     arma::svd(U, sv, V, X0);
+  //
+  //     // element in the subgradient of
+  //     // 0.5 ||R - RX||_F^2 + lambda ||X||_*
+  //     // with respect to X
+  //     subgradient = lambda * U * V.t() + R.t() * (R * X0 - R);
+  //
+  //   };
+  //   break;
+  //
+  // default:
+  //   // if N/T >= .9, then compute subgradient according to svd(R * X)
+  //   if ((double)N/T >= .9) {
+  //
+  //     ComputeSubgradient = [&]() -> void {
+  //
+  //       Rcpp::Rcout << "\n Inside ComputeSubgradient \n\n";
+  //       Rcpp::Rcout << "R = " << R.row(0) << "\n";
+  //       Rcpp::Rcout << "X0 = " << X0.row(0) << "\n";
+  //       Rcpp::Rcout << "lambda = " << lambda << "\n";
+  //
+  //       // compute R * X0
+  //       const arma::mat RX0 = R * X0;
+  //
+  //       // compute svd(R * X)
+  //       arma::svd(U, sv, V, RX0);
+  //
+  //       // element in the subgradient of
+  //       // 0.5 ||R - RX||_F^2 + lambda ||R * X||_*
+  //       // with respect to X
+  //       subgradient = lambda * R.t() * U.cols(0, N-1) * V.t() +
+  //         R.t() * (R * X0 - R);
+  //
+  //       Rcpp::Rcout << "subgradient = " << subgradient.row(0) << "\n";
+  //
+  //     };
+  //   // otherwise compute subgradient according to svd(R), qr(X'Vr) and svd(ASr)
+  //   } else {
+  //
+  //     Rcpp::Rcout << "\n Inside ComputeSubgradient 2 \n\n";
+  //     Rcpp::Rcout << "R = " << R.row(0) << "\n";
+  //     Rcpp::Rcout << "X0 = " << X0.row(0) << "\n";
+  //     Rcpp::Rcout << "lambda = " << lambda << "\n";
+  //     // compute svd(R) once
+  //     arma::svd(U, sv, V, R);
+  //     // remove the last (T - N) columns from U
+  //     U.shed_cols(N, T-1);
+  //
+  //     ComputeSubgradient = [&]() -> void {
+  //
+  //       // compute qr(X'V)
+  //       arma::mat Q, A;
+  //       arma::qr(Q, A, X0.t() * V);
+  //
+  //       // compute svd(A * S)
+  //       arma::mat U1, V1;
+  //       arma::vec sv1;
+  //
+  //       arma::svd(U1, sv1, V1, A * arma::diagmat(sv));
+  //
+  //       // element in the subgradient of
+  //       // 0.5 ||R - RX||_F^2 + lambda ||R * X||_*
+  //       // with respect to X
+  //       subgradient = lambda * R.t() * (U * V1)  * (Q * U1).t() +
+  //         R.t() * (R * X0 - R);
+  //       Rcpp::Rcout << "subgradient = " << subgradient.row(0) << "\n";
+  //
+  //
+  //     };
+  //
+  //   }
+  //   break;
+  //
+  // }
 
 };
 
@@ -178,35 +193,56 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
 void MarkovitzRRRSolver::Solve() {
 
   // main loop
-  while(iter < max_iter) {
+  // while(++iter < max_iter) {
+  while(++iter < max_iter) {
 
     // Compute the projected subgradient step based on the current iteration
-    ProjectedSubgradientStep(iter);
+    ComputeProjectedSubgradientStep(iter);
 
     // update `X0` to `X1`
     X0 = X1;
 
-    // increment `iter`
-    ++iter;
-
   }
 
   // not to waste the last new `X0`, finalize with one more step
-  ProjectedSubgradientStep(iter);
+  ComputeProjectedSubgradientStep(iter);
 
 }
 
 // Compute one projected subgradient step based on the current iteration
-void MarkovitzRRRSolver::ProjectedSubgradientStep(const unsigned int iter) {
+void MarkovitzRRRSolver::ComputeProjectedSubgradientStep(const unsigned int iter) {
 
   // compute the subgradient, stored in `this->subgradient`
   ComputeSubgradient();
 
+  /////////////////////////////////////////////////////////////////////
+  // Rcpp::Rcout << "\n Outside ComputeSubgradient \n\n";
+  // Rcpp::Rcout << "R = " << R.row(0) << "\n";
+  // Rcpp::Rcout << "X0 = " << X0.row(0) << "\n";
+  // Rcpp::Rcout << "lambda = " << lambda << "\n";
+  // // compute R * X0
+  // const arma::mat RX0 = R * X0;
+  //
+  // // compute svd(R * X)
+  // arma::svd(U, sv, V, RX0);
+  //
+  // // element in the subgradient of
+  // // 0.5 ||R - RX||_F^2 + lambda ||R * X||_*
+  // // with respect to X
+  // subgradient = lambda * R.t() * U.cols(0, N-1) * V.t() +
+  //   R.t() * (R * X0 - R);
+  // Rcpp::Rcout << "subgradient = " << subgradient.row(0) << "\n";
+  /////////////////////////////////////////////////////////////////////
   // compute the step size, stored in `this->step_size`
-  ComputeStepSize();
+
+  // ComputeStepSize();
+  /////////////////////////////////////////////////////////////////////
+  // step_size = step_size_constant / std::sqrt(iter + 1);
+  /////////////////////////////////////////////////////////////////////
 
   // update `X1`, remember that `X1` = `X0` before this computation
-  X1 -= step_size * subgradient;
+  X1 -= ComputeStepSize() * subgradient;
+  // Rcpp::Rcout << "step_size = " << step_size << "\n";
 
   // project `X1` on the space of hollow matrices
   X1.diag().zeros();
@@ -237,6 +273,148 @@ double MarkovitzRRRSolver::ComputeObjective(const arma::mat& X) const {
     lambda * arma::sum(arma::svd(RX));
 
 };
+
+
+//////////////////////
+//// Step Size ///////
+
+// compute constant step_size
+double MarkovitzRRRSolver::ComputeStepSizeConstant() const {
+
+  return step_size_constant;
+
+  };
+
+// compute not summable vanishing step_size
+double MarkovitzRRRSolver::ComputeStepSizeNotSummableVanishing() const {
+
+  return step_size_constant / std::sqrt(iter + 1);
+
+  };
+
+// compute square summable not summable step_size
+double MarkovitzRRRSolver::ComputeStepSizeSquareSummableNotSummable() const {
+
+  return step_size_constant / (iter + 1);
+
+};
+
+// compute square summable not summable step_size
+double MarkovitzRRRSolver::ComputeStepSizeModifiedPolyak() const {
+
+  return (step_size_constant + objective(iter - 1) -
+    arma::min(objective.head(iter))) / arma::norm(subgradient, "fro");
+
+};
+
+// set function `ComputeStepSize` according to `step_size_type`:
+// if `step_size_type` = 'c' for constant, then the returned function computes a
+// constant step size.
+// if `step_size_type` = 's' for square summable, then the returned function
+// computes a square summable but not summable step size.
+// otherwise the function computes a not summable vanishing step size.
+// default is `step_size_type` = 'd'.
+std::function<double(void)> MarkovitzRRRSolver::SetStepSizeFunction(
+  const char step_size_type
+) const {
+
+  switch (step_size_type) {
+
+  case 'c':
+    return std::bind(&MarkovitzRRRSolver::ComputeStepSizeConstant, this);
+
+  case 's':
+    return std::bind(&MarkovitzRRRSolver::ComputeStepSizeSquareSummableNotSummable, this);
+
+  case 'p':
+    return std::bind(&MarkovitzRRRSolver::ComputeStepSizeModifiedPolyak, this);
+
+  default:
+    return std::bind(&MarkovitzRRRSolver::ComputeStepSizeNotSummableVanishing, this);
+
+  }
+
+};
+
+////////////////////////
+//// Subgradient ///////
+
+// Compute subgradient for large N
+void MarkovitzRRRSolver::ComputeSubgradientForLargeN() {
+
+  // compute R * X0
+  const arma::mat RX0 = R * X0;
+
+  // compute svd(R * X)
+  arma::svd(U, sv, V, RX0);
+
+  // element in the subgradient of
+  // 0.5 ||R - RX||_F^2 + lambda ||R * X||_*
+  // with respect to X
+  subgradient = lambda * R.t() * U.cols(0, N-1) * V.t() +
+    R.t() * (R * X0 - R);
+
+}
+
+// Compute subgradient for small N
+void MarkovitzRRRSolver::ComputeSubgradientForSmallN() {
+
+  // compute qr(X'V)
+  arma::mat Q, A;
+  arma::qr(Q, A, X0.t() * V);
+
+  // compute svd(A * S)
+  arma::mat U1, V1;
+  arma::vec sv1;
+
+  arma::svd(U1, sv1, V1, A * arma::diagmat(sv));
+
+  // element in the subgradient of
+  // 0.5 ||R - RX||_F^2 + lambda ||R * X||_*
+  // with respect to X
+  subgradient = lambda * R.t() * (U * V1)  * (Q * U1).t() +
+    R.t() * (R * X0 - R);
+
+}
+
+// Compute alternative subgradient
+void MarkovitzRRRSolver::ComputeSubgradientAlternative() {
+
+  // compute svd(X)
+  arma::svd(U, sv, V, X0);
+
+  // element in the subgradient of
+  // 0.5 ||R - RX||_F^2 + lambda ||X||_*
+  // with respect to X
+  subgradient = lambda * U * V.t() + R.t() * (R * X0 - R);
+
+}
+
+// set `ComputeSubgradient` according to `penalty_type`:
+// if `penalty_type` = 'a' for alternative, then the subgradient accounts for
+// the penalty `lambda ||X||_*`. Otherwise, as default, it accounts for the
+// penalty `lambda ||R * X||_*`, for which there are two implementations,
+// one computing each time `svd(R * X)=USV'`, and the other one computing once
+// `svd(R)=USV'` and each time computing `qr(X'V)=QA` and `svd(AS)`.
+// the latter option is desirable when T>>N.
+std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
+  const char penalty_type
+) {
+
+  switch (penalty_type) {
+
+  case 'a':
+    return std::bind(&MarkovitzRRRSolver::ComputeSubgradientAlternative, this);
+
+  default:
+    return (double)N/T >= .9 ?
+      std::bind(&MarkovitzRRRSolver::ComputeSubgradientForLargeN, this) :
+      std::bind(&MarkovitzRRRSolver::ComputeSubgradientForSmallN, this);
+
+  }
+
+}
+
 
 // set lambda
 void MarkovitzRRRSolver::SetLambda(const double lambda) {

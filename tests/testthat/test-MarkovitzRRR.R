@@ -3,13 +3,15 @@ test_that("Test MarkovitzRRR", {
   # simulate returns
   n_assets = 5
   returns = markovitzRRR::returns[1:20, 2:(n_assets + 1)]
+  max_iter = 5
 
   lambda = 0.2
 
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda
+      lambda,
+      max_iter = max_iter
     )
   )
 
@@ -17,7 +19,7 @@ test_that("Test MarkovitzRRR", {
     MarkovitzRRR(
       returns,
       lambda,
-      max_iter = 100
+      max_iter = 5
     )
   )
 
@@ -25,7 +27,8 @@ test_that("Test MarkovitzRRR", {
     MarkovitzRRR(
       returns,
       lambda,
-      penalty_type = 'a'
+      penalty_type = 'a',
+      max_iter = max_iter
     )
   )
 
@@ -33,7 +36,8 @@ test_that("Test MarkovitzRRR", {
     MarkovitzRRR(
       returns,
       lambda,
-      step_size_type = 'c'
+      step_size_type = 'c',
+      max_iter = max_iter
     )
   )
 
@@ -41,7 +45,8 @@ test_that("Test MarkovitzRRR", {
     MarkovitzRRR(
       returns,
       lambda,
-      step_size_type = 'p'
+      step_size_type = 'p',
+      max_iter = max_iter
     )
   )
 
@@ -57,7 +62,8 @@ test_that("Test MarkovitzRRR", {
   expect_length(
     MarkovitzRRR(
       returns,
-      lambda
+      lambda,
+      max_iter = max_iter
     )$solution,
     n_assets * n_assets
   )
@@ -121,7 +127,8 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda
+      lambda,
+      max_iter = max_iter
     )
   )
 

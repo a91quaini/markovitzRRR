@@ -36,6 +36,8 @@ Windows](https://cran.r-project.org/bin/windows/Rtools/).
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
+library(markovitzRRR)
+
 ## simulate asset returns
 set.seed(2)
 n_assets = 20
