@@ -16,22 +16,24 @@ lambda = .05
 ## compute Markovitz RRR solution
 start_time_markovitz <- Sys.time()
 # use ?markovitzRRR::MarkovitzRRR
-# markovitz_solution = markovitzRRR::MarkovitzRRR(
-#   returns,
-#   lambda,
-#   penalty_type = 'd',
-#   step_size_type = 'd',
-#   step_size_constant = .5e-2,
-#   max_iter = 10000
-# )
 markovitz_solution = markovitzRRR::MarkovitzRRR(
   returns,
   lambda,
   penalty_type = 'd',
   step_size_type = 'd',
-  step_size_constant = .6e-1,
-  max_iter = 10000
+  step_size_constant = .5e-2,
+  max_iter = 10000,
+  tolerance = 1.e-12
 )
+# markovitz_solution = markovitzRRR::MarkovitzRRR(
+#   returns,
+#   lambda,
+#   penalty_type = 'd',
+#   step_size_type = 'd',
+#   step_size_constant = .6e-1,
+#   max_iter = 10000,
+#   tolerance = 1.e-12
+# )
 end_time_markovitz <- Sys.time()
 # plot objective function vs solver iterations
 markovitzRRR::PlotMarkovitzRRRObjective(markovitz_solution)

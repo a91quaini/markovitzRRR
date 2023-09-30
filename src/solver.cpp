@@ -55,11 +55,19 @@ void MarkovitzRRRSolver::Solve() {
 
     while(++iter < max_iter) {
 
+      Rcpp::Rcout << iter << "\n";
+
       // Compute the projected subgradient step based on the current iteration
       ComputeProjectedSubgradientStep(iter);
 
       // if ||X1 - X0||_F^2 < tolerance quit loop
-      if (arma::accu(arma::square(X1 - X0)) < tolerance) break;
+      if (arma::accu(arma::square(X1 - X0)) < tolerance) {
+
+        // remove elements
+        objective.shed_rows(iter + 1, max_iter);
+        break;
+
+      }
 
       // update `X0` to `X1`
       X0 = X1;
