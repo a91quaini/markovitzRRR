@@ -132,12 +132,12 @@ test_that("Test MarkovitzRRR", {
     )
   )
 
-  # expect_error(
-  #   MarkovitzRRR(
-  #     returns,
-  #     lambda,
-  #     tolerance = "s"
-  #   )
-  # )
+  expect_error(
+    MarkovitzRRR(
+      returns,
+      lambda,
+      tolerance = "s"
+    )
+  )
 
 })

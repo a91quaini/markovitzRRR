@@ -9,7 +9,8 @@ Rcpp::List MarkovitzRRRCpp(
   const char penalty_type,
   const char step_size_type,
   const double step_size_constant,
-  const unsigned int max_iter
+  const unsigned int max_iter,
+  const double tolerance
 ) {
 
   // set initial point `X0` to hollow matrix with 1/N on the off-diagonal
@@ -26,8 +27,8 @@ Rcpp::List MarkovitzRRRCpp(
     penalty_type,
     step_size_type,
     step_size_constant,
-    max_iter
-    // tolerance
+    max_iter,
+    tolerance
   );
 
   // solve the optimization problem
@@ -36,7 +37,7 @@ Rcpp::List MarkovitzRRRCpp(
   return Rcpp::List::create(
     Rcpp::Named("solution") = solver.GetSolution(),
     Rcpp::Named("objective") = solver.GetObjective(),
-    Rcpp::Named("weights") = solver.GetOptimalPortfolioWeights()
+    Rcpp::Named("weights") = solver.ComputeOptimalPortfolioWeights()
     // Rcpp::Named("status") = solver.GetStatus(),
   );
 

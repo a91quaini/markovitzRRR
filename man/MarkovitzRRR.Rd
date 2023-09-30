@@ -12,6 +12,7 @@ MarkovitzRRR(
   step_size_type = "d",
   step_size_constant = 0.001,
   max_iter = 10000,
+  tolerance = -1,
   check_arguments = TRUE
 )
 
@@ -29,11 +30,16 @@ parameter values from smallest to largest; for now it is just a positive number.
 for default, i.e., penalty given by \verb{||RX||_*}; \code{'a'} for alternative, i.e.,
 penalty given by \verb{||X||_*}. Default is \code{'d'}.}
 
-\item{step_size_type}{character indicating the type of step size: \code{'d'} for
-default, i.e., not summable vanishing given by \code{step_size_constant / sqrt(iter + 1)};
-\code{'c'} for constant step size equal to \code{step_size_constant}; \code{'s'} for square
-summable but not summable given by \code{step_size_constant / (iteration + 1)};
-\code{'p'} for modified Polyak given by \verb{step_size_constant / ||subgradient||_F^2}.
+\item{step_size_type}{character indicating the type of step size:
+\code{'c'} for constant step size equal to \code{step_size_constant};
+\code{'l'} for constant step length, where step size is given by
+\verb{step_size_constant / ||subgradient||_F}.
+\code{'d'} for default, i.e., not summable vanishing step size given by
+\code{step_size_constant / sqrt(iter + 1)};
+\code{'s'} for square
+summable but not summable given by \code{step_size_constant / (iter + 1)};
+\code{'p'} for modified Polyak given by
+\verb{(step_size_constant + objective - min\{objective_k | k=0,...,iter\} ) / ||subgradient)||_F}.
 Default is \code{'d'}.}
 
 \item{step_size_constant}{numeric constant determining the step size. Default
@@ -41,6 +47,9 @@ is \code{1.e-3}}
 
 \item{max_iter}{numeric solver parameter indicating the maximum number of
 iterations. Default is \code{10000}.}
+
+\item{tolerance}{numeric tolerance check for \verb{||X_k+1 - X_k||_F^2 / N^2}.
+If \code{tolerance <= 0}, no check is performed. Default is \code{-1.}, for no .}
 
 \item{check_arguments}{boolean \code{TRUE} if you want to check function arguments;
 \code{FALSE} otherwise. Default is \code{TRUE}.}

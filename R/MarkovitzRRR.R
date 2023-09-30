@@ -17,18 +17,23 @@
 #' @param penalty_type character indicating the type of penalty function:  `'d'`
 #' for default, i.e., penalty given by `||RX||_*`; `'a'` for alternative, i.e.,
 #' penalty given by `||X||_*`. Default is `'d'`.
-#' @param step_size_type character indicating the type of step size: `'d'` for
-#' default, i.e., not summable vanishing given by `step_size_constant / sqrt(iter + 1)`;
-#' `'c'` for constant step size equal to `step_size_constant`; `'s'` for square
-#' summable but not summable given by `step_size_constant / (iteration + 1)`;
-#' `'p'` for modified Polyak given by `step_size_constant / ||subgradient||_F^2`.
+#' @param step_size_type character indicating the type of step size:
+#' `'c'` for constant step size equal to `step_size_constant`;
+#' `'l'` for constant step length, where step size is given by
+#' `step_size_constant / ||subgradient||_F`.
+#' `'d'` for default, i.e., not summable vanishing step size given by
+#' `step_size_constant / sqrt(iter + 1)`;
+#' `'s'` for square
+#' summable but not summable given by `step_size_constant / (iter + 1)`;
+#' `'p'` for modified Polyak given by
+#' `(step_size_constant + objective - min{objective_k | k=0,...,iter} ) / ||subgradient)||_F`.
 #' Default is `'d'`.
 #' @param step_size_constant numeric constant determining the step size. Default
 #' is `1.e-3`
 #' @param max_iter numeric solver parameter indicating the maximum number of
 #' iterations. Default is `10000`.
-# #' @param tolerance numeric tolerance check for `||X_k+1 - X_k||_F^2 / N^2`.
-# #' Default is 1.e-15.
+#' @param tolerance numeric tolerance check for `||X_k+1 - X_k||_F^2 / N^2`.
+#' If `tolerance <= 0`, no check is performed. Default is `-1.`, for no .
 #' @param check_arguments boolean `TRUE` if you want to check function arguments;
 #' `FALSE` otherwise. Default is `TRUE`.
 #'
@@ -42,7 +47,7 @@ MarkovitzRRR = function(
   step_size_type = 'd',
   step_size_constant = 1.e-3,
   max_iter = 10000,
-  # tolerance
+  tolerance = -1.,
   check_arguments = TRUE
 ) {
 
@@ -55,7 +60,7 @@ MarkovitzRRR = function(
     stopifnot("`step_size_type` must be a character" = is.character(step_size_type))
     stopifnot("`step_size_constant` must be numeric" = is.numeric(step_size_constant))
     stopifnot("`max_iter` must be numeric" = is.numeric(max_iter))
-    # stopifnot("`tolerance` must be numeric" = is.numeric(tolerance))
+    stopifnot("`tolerance` must be numeric" = is.numeric(tolerance))
 
   }
 
@@ -65,7 +70,8 @@ MarkovitzRRR = function(
     penalty_type,
     step_size_type,
     step_size_constant,
-    max_iter
+    max_iter,
+    tolerance
   ))
 
 }

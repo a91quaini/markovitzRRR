@@ -29,6 +29,8 @@ private:
   arma::mat X0;
   arma::mat X1;
   arma::mat Xbest;
+  // optimal portfolio weights
+  arma::rowvec weights;
   // penalty parameter
   double lambda;
   // objective function
@@ -47,10 +49,8 @@ private:
   // iterations
   const unsigned int max_iter;
   unsigned int iter;
-  // // solver status
-  // std::string status;
-  // // tolerance
-  // const double tolerance;
+  // tolerance
+  const double tolerance;
 
   // accessible members
 public:
@@ -64,8 +64,8 @@ public:
     const char penalty_type = 'd',
     const char step_size_type = 'd',
     const double step_size_constant = 1.e-3,
-    const unsigned int max_iter = 10000
-    // const double tolerance
+    const unsigned int max_iter = 10000,
+    const double tolerance = -1.
   );
 
   // Solve the optimization problem using the projected subgradient path
@@ -80,6 +80,7 @@ public:
   // compute `step_size` at the current iteration
   std::function<double(void)> SetStepSizeFunction(const char step_size_type) const;
   double ComputeStepSizeConstant() const;
+  double ComputeStepSizeConstantStepLength() const;
   double ComputeStepSizeNotSummableVanishing() const;
   double ComputeStepSizeSquareSummableNotSummable() const;
   double ComputeStepSizeModifiedPolyak() const;
@@ -89,6 +90,9 @@ public:
   void ComputeSubgradientForLargeN();
   void ComputeSubgradientForSmallN();
   void ComputeSubgradientAlternative();
+
+  // compute the optimal portfolio weights
+  arma::rowvec ComputeOptimalPortfolioWeights();
 
   // set the penalty parameter lambda
   void SetLambda(double lambda);
@@ -101,9 +105,6 @@ public:
 
   // get the solver solution
   const arma::mat& GetSolution() const;
-
-  // compute the optimal portfolio weights
-  arma::rowvec GetOptimalPortfolioWeights() const;
 
 };
 

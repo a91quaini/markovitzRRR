@@ -12,8 +12,8 @@ Rcpp::List MarkovitzRRRCpp(
   const char penalty_type = 'd',
   const char step_size_type = 'd',
   const double step_size_constant = 1.e-3,
-  const unsigned int max_iter = 10000
+  const unsigned int max_iter = 10000,
+  const double tolerance = -1.
 );
-// const double tolerance = 1.e-15
 
 #endif
