@@ -8,7 +8,20 @@
 
 Author: Alberto Quaini
 
-Efficient implementation of Markovitz optimal portfolio selection via Reduced Rank Regression.
+Efficient implementation of Markovitz optimal portfolio selection via Reduced Rank Regression. Optimal weights are given by:
+$$w_{gmv} = \frac{\Sigma^{-1}\iota}{\iota'\Sigma^{-1}\iota},$$
+where $\Sigma^{-1} = V[R]^{-1}$ is the inverse variance-covariance matrix of asset
+excess returns $R\in\mathbb R^{T\times N}$. Optimal weights $w_{gmv}$ are computed by using:
+$$\Sigma^{-1}=\text{diag}(V[E])(I - X),$$
+where $I$ is the identity matrix,
+$V[E]$ is the variance-covariance matrix of the residual in the regression
+$$R=RX+E,$$
+and $X\in\mathbb R^{N\times N}$ solves either (default):
+$$\arg\min_{X}\left\{ \frac{1}{2}||R - RX ||_F^2 + \lambda ||RX||_* \ \text{diag}(X)=0\right\},$$
+where $||\cdot||_F$ is the Frobenious norm, and 
+$||\cdot||_*$ is the nuclear norm and $\lambda>0$,
+or (alternative): 
+$$\arg\min_{X}\left\{ \frac{1}{2}||R - RX ||_F^2 + \lambda ||X||_* \ \text{diag}(X)=0\right\}.$$
 
 ## Installation
 
