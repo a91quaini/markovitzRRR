@@ -16,12 +16,12 @@ $$\Sigma^{-1}=\text{diag}(V[E])(I - X),$$
 where $I$ is the identity matrix,
 $V[E]$ is the variance-covariance matrix of the residual in the regression
 $$R=RX+E,$$
-and $X\in\mathbb R^{N\times N}$ solves either (default):
-$$\arg\min_{X}\left\{ \frac{1}{2}||R - RX ||_F^2 + \lambda ||RX||_* \ \text{diag}(X)=0\right\},$$
+and $X\in\mathbb R^{N\times N}$ minimizes $f(X)$ subject to $\text{diag}(X)=0$, where (default): 
+$$f(X)=1/2||R - RX ||_F^2 + \lambda ||RX||_*,$$ 
 where $||\cdot||_F$ is the Frobenious norm, and 
 $||\cdot||_*$ is the nuclear norm and $\lambda>0$,
-or (alternative): 
-$$\arg\min_{X}\left\{ \frac{1}{2}||R - RX ||_F^2 + \lambda ||X||_* \ \text{diag}(X)=0\right\}.$$
+or (alternative)
+$$f(X)=1/2||R - RX ||_F^2 + \lambda ||X||_*.$$
 
 ## Installation
 
