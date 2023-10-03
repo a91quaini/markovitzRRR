@@ -49,89 +49,99 @@ Windows](https://cran.r-project.org/bin/windows/Rtools/).
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
-## simulate asset returns
+# required packages:
+# install.packages("MASS")
+# install.packages("CVXR")
+# devtools::install_github("a91quaini/markovitzRRR")
+# install.packages("microbenchmark)
+
+# Set seed for reproducibility
 set.seed(2)
-n_assets = 20
-n_obs = 100
-mean_returns = rep(0, n_assets)
-variance_returns = diag(1., n_assets)
-returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
 
-# ## or use real dataset of returns -> in this case CVX has a memory failure
-# returns = markovitzRRR::returns[,2:26]
-# n_assets = ncol(returns)
+# Simulate asset returns
+n_assets <- 20
+n_obs <- 100
+mean_returns <- rep(0, n_assets)
+variance_returns <- diag(1., n_assets)
+returns <- MASS::mvrnorm(n_obs, mean_returns, variance_returns)
 
-# set penalty parameter lambda
-lambda = .05
+# Set penalty parameter lambda
+lambda <- 0.05
 
-## compute Markovitz RRR solution
-start_time_markovitz <- Sys.time()
-# use ?markovitzRRR::MarkovitzRRR
-markovitz_solution = markovitzRRR::MarkovitzRRR(
-  returns,
-  lambda,
-  objective_type = 'd',
-  penalty_type = 'd',
-  step_size_type = 'd',
-  step_size_constant = .5e-2,
-  max_iter = 10000,
-  tolerance = 1.e-12
-)
-# markovitz_solution = markovitzRRR::MarkovitzRRR(
-#   returns,
-#   lambda,
-#   penalty_type = 'd',
-#   step_size_type = 'd',
-#   step_size_constant = .6e-1,
-#   max_iter = 10000,
-#   tolerance = 1.e-12
-# )
-end_time_markovitz <- Sys.time()
-# plot objective function vs solver iterations
-markovitzRRR::PlotMarkovitzRRRObjective(markovitz_solution)
+# Define the markovitzRRR function call as a function
+markovitzRRR_function <- function() {
+  return(MarkovitzRRR(
+    returns,
+    lambda,
+    objective_type = 'd',
+    penalty_type = 'd',
+    step_size_type = 'd',
+    step_size_constant = 0.5e-2,
+    max_iter = 10000,
+     tolerance = 1e-12
+  ))
+}
 
-## compute CVX solution
-X = CVXR::Variable(n_assets, n_assets)
-cost = .5 * CVXR::sum_squares(returns - returns %*% X)
-penalty = lambda * CVXR::norm_nuc(returns %*% X)
-constraint = list(CVXR::diag(X) == 0)
+X <- CVXR::Variable(n_assets, n_assets)
+cost <- 0.5 * CVXR::sum_squares(returns - returns %*% X)
+penalty <- lambda * CVXR::norm_nuc(returns %*% X)
+constraint <- list(CVXR::diag(X) == 0)
+problem <- CVXR::Problem(CVXR::Minimize(cost + penalty), constraint)
 
-problem = CVXR::Problem(CVXR::Minimize(cost + penalty), constraint)
+# Define the CVXR function call as a function
+cvxr_function <- function() {
+  return(CVXR::solve(problem, reltol = 1e-8, abstol = 1e-12, num_iter = 10000))
+}
 
-# Measure execution time for CVX
-start_time_cvx <- Sys.time()
-cvx_solution = CVXR::solve(problem, reltol = 1e-8, abstol = 1e-8, num_iter = 10000)
-end_time_cvx <- Sys.time()
+# check solutions
+markovitzRRR_solution = markovitzRRR_function()
+cvxr_solution = cvxr_function()
 
-## Results
-# Print the execution times
-cat("MarkovitzRRR execution time:", end_time_markovitz - start_time_markovitz, "\n")
-cat("CVX execution time:", end_time_cvx - start_time_cvx, "\n")
-
-# Print optimal values
-cat("MarkovitzRRR optimal value = ", round(min(markovitz_solution$objective), 4), "\n")
-cat("CVX optimal value = ", round(cvx_solution$value, 4), "\n")
+cat("MarkovitzRRR optimal value = ", round(min(markovitzRRR_solution$objective), 4), "\n")
+cat("CVX optimal value = ", round(cvxr_solution$value, 4), "\n")
 
 cat("Distance between MarkovitzRRR and CVX solutions = ",
-    round(sum((markovitz_solution$solution - cvx_solution$getValue(X))^2), 15), "\n")
-
+    round(sum((markovitzRRR_solution$solution - cvxr_solution$getValue(X))^2), 15), "\n")
 ```
 
-Execution time:
+Solutions:
 ``` r
-MarkovitzRRR execution time: 0.1697729 
-CVX execution time: 15.35975 
-```
-
-Optimal value:
-``` r
-MarkovitzRRR optimal value =  821.6312 
+MarkovitzRRR optimal value =  821.6312
 CVX optimal value =  821.6312 
-Distance between MarkovitzRRR and CVX solutions =  1.975098e-08  
+Distance between MarkovitzRRR and CVX solutions =  1.97613e-08
 ```
-
 <p float="left">
 <img src="inst/examples/solver_path.png" width="400" />
 </p>
+
+Benchmark:
+``` r
+# Run microbenchmark
+mb <- microbenchmark::microbenchmark(
+  markovitzRRR = markovitzRRR_function(),
+  CVXR = cvxr_function(),
+  times = 10
+)
+
+# Print the benchmark results
+print(mb)
+
+# Access specific metrics if needed
+# print(summary(mb))
+print(boxplot(mb))
+```
+
+Results:
+``` r
+Unit: milliseconds
+         expr        min         lq       mean     median         uq        max neval
+ markovitzRRR   154.7416   154.8898   155.3684   155.1661   155.3691   156.9844    10
+         CVXR 15160.0323 15268.4862 15320.8739 15349.8701 15381.1129 15391.9638    10
+```
+
+<p float="left">
+<img src="inst/examples/microbenchmark_report.png" width="400" />
+</p>
+
 
 ## References
