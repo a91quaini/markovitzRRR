@@ -49,8 +49,6 @@ Windows](https://cran.r-project.org/bin/windows/Rtools/).
 This is a basic example which shows you how to solve a common problem:
 
 ``` r
-library(markovitzRRR)
-
 ## simulate asset returns
 set.seed(2)
 n_assets = 20
@@ -59,28 +57,38 @@ mean_returns = rep(0, n_assets)
 variance_returns = diag(1., n_assets)
 returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
 
+# ## or use real dataset of returns -> in this case CVX has a memory failure
+# returns = markovitzRRR::returns[,2:26]
+# n_assets = ncol(returns)
+
 # set penalty parameter lambda
 lambda = .05
 
 ## compute Markovitz RRR solution
 start_time_markovitz <- Sys.time()
-# step_size_type can be:
-# `'c'` for constant step size equal to `step_size_constant`;
-# `'s'` for square summable but not summable given by `step_size_constant / (iteration + 1)`;
-# `'p'` for modified Polyak given by `step_size_constant / ||subgradient||_F^2`;
-# any other character gives a summable vanishing step size given by
-# `step_size_constant / sqrt(iteration + 1)`.
-markovitz_solution = MarkovitzRRR(
+# use ?markovitzRRR::MarkovitzRRR
+markovitz_solution = markovitzRRR::MarkovitzRRR(
   returns,
   lambda,
+  objective_type = 'd',
   penalty_type = 'd',
   step_size_type = 'd',
-  step_size_constant = .05e-1,
-  max_iter = 500
+  step_size_constant = .5e-2,
+  max_iter = 10000,
+  tolerance = 1.e-12
 )
+# markovitz_solution = markovitzRRR::MarkovitzRRR(
+#   returns,
+#   lambda,
+#   penalty_type = 'd',
+#   step_size_type = 'd',
+#   step_size_constant = .6e-1,
+#   max_iter = 10000,
+#   tolerance = 1.e-12
+# )
 end_time_markovitz <- Sys.time()
 # plot objective function vs solver iterations
-PlotMarkovitzRRRObjective(markovitz_solution)
+markovitzRRR::PlotMarkovitzRRRObjective(markovitz_solution)
 
 ## compute CVX solution
 X = CVXR::Variable(n_assets, n_assets)
@@ -106,6 +114,7 @@ cat("CVX optimal value = ", round(cvx_solution$value, 4), "\n")
 
 cat("Distance between MarkovitzRRR and CVX solutions = ",
     round(sum((markovitz_solution$solution - cvx_solution$getValue(X))^2), 15), "\n")
+
 ```
 
 Execution time:
@@ -118,7 +127,7 @@ Optimal value:
 ``` r
 MarkovitzRRR optimal value =  821.6312 
 CVX optimal value =  821.6312 
-Distance between MarkovitzRRR and CVX solutions =  1.827446e-07 
+Distance between MarkovitzRRR and CVX solutions =  1.975098e-08  
 ```
 
 <p float="left">

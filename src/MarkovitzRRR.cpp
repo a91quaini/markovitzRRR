@@ -6,6 +6,7 @@
 Rcpp::List MarkovitzRRRCpp(
   const arma::mat& R,
   const double lambda,
+  const char objective_type,
   const char penalty_type,
   const char step_size_type,
   const double step_size_constant,
@@ -24,6 +25,7 @@ Rcpp::List MarkovitzRRRCpp(
     R,
     X0,
     lambda,
+    objective_type,
     penalty_type,
     step_size_type,
     step_size_constant,

@@ -14,7 +14,11 @@
 #' @param penalty_parameters in principle this is a `n_parameters`-dimensional
 #' vector of penalty
 #' parameter values from smallest to largest; for now it is just a positive number.
-#' @param penalty_type character indicating the type of penalty function:  `'d'`
+#' @param objective_type character indicating the type of objective function:
+#' `'d'` for default, i.e., objective given by `.5||R - RX||_F^2 + lambda * ||RX||_*`;
+#' `'a'` for alternative, i.e.,
+#' objective given by `.5||R - RX||_F^2 + lambda * ||X||_*`. Default is `'d'`.
+#' @param penalty_type character indicating the type of penalty function: `'d'`
 #' for default, i.e., penalty given by `||RX||_*`; `'a'` for alternative, i.e.,
 #' penalty given by `||X||_*`. Default is `'d'`.
 #' @param step_size_type character indicating the type of step size:
@@ -43,6 +47,7 @@
 MarkovitzRRR = function(
   returns,
   penalty_parameters,
+  objective_type = 'd',
   penalty_type = 'd',
   step_size_type = 'd',
   step_size_constant = 1.e-3,
@@ -56,6 +61,7 @@ MarkovitzRRR = function(
     CheckReturns(returns)
     stopifnot("`penalty_parameters` must be numeric" = is.numeric(penalty_parameters))
     stopifnot("`penalty_parameters` must be positive" = penalty_parameters > 0.)
+    stopifnot("`objective_type` must be a character" = is.character(objective_type))
     stopifnot("`penalty_type` must be a character" = is.character(penalty_type))
     stopifnot("`step_size_type` must be a character" = is.character(step_size_type))
     stopifnot("`step_size_constant` must be numeric" = is.numeric(step_size_constant))
@@ -67,6 +73,7 @@ MarkovitzRRR = function(
   return(.Call(`_markovitzRRR_MarkovitzRRRCpp`,
     returns,
     penalty_parameters,
+    objective_type,
     penalty_type,
     step_size_type,
     step_size_constant,

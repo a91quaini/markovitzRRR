@@ -27,6 +27,15 @@ test_that("Test MarkovitzRRR", {
     MarkovitzRRR(
       returns,
       lambda,
+      objective_type = 'a',
+      max_iter = 5
+    )
+  )
+
+  expect_no_error(
+    MarkovitzRRR(
+      returns,
+      lambda,
       penalty_type = 'a',
       max_iter = max_iter
     )
@@ -86,6 +95,14 @@ test_that("Test MarkovitzRRR", {
     MarkovitzRRR(
       returns,
       lambda = "s"
+    )
+  )
+
+  expect_error(
+    MarkovitzRRR(
+      returns,
+      lambda,
+      objective_type = c(2, 3)
     )
   )
 

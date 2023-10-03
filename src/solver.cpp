@@ -9,6 +9,7 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   const arma::mat& R,
   const arma::mat& X0,
   const double lambda,
+  const char objective_type,
   const char penalty_type,
   const char step_size_type,
   const double step_size_constant,
@@ -22,7 +23,8 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   X1(X0),
   Xbest(X0),
   lambda(lambda),
-  objective(arma::vec(max_iter + 1)),
+  objective(arma::vec(max_iter)),
+  ComputeObjective(SetObjectiveFunction(objective_type)),
   ComputeSubgradient(SetSubgradientFunction(penalty_type)),
   step_size_constant(step_size_constant),
   ComputeStepSize(SetStepSizeFunction(step_size_type)),
@@ -55,8 +57,6 @@ void MarkovitzRRRSolver::Solve() {
 
     while(++iter < max_iter) {
 
-      Rcpp::Rcout << iter << "\n";
-
       // Compute the projected subgradient step based on the current iteration
       ComputeProjectedSubgradientStep(iter);
 
@@ -64,7 +64,8 @@ void MarkovitzRRRSolver::Solve() {
       if (arma::accu(arma::square(X1 - X0)) < tolerance) {
 
         // remove elements
-        objective.shed_rows(iter + 1, max_iter);
+        objective = objective.head(iter);
+        // objective.shed_rows(iter + 1, max_iter);
         break;
 
       }
@@ -78,7 +79,7 @@ void MarkovitzRRRSolver::Solve() {
   } else {
 
     // main loop
-    while(++iter < max_iter) {
+    while(++iter < max_iter - 1) {
 
       // Compute the projected subgradient step based on the current iteration
       ComputeProjectedSubgradientStep(iter);
@@ -113,24 +114,28 @@ void MarkovitzRRRSolver::ComputeProjectedSubgradientStep(const unsigned int iter
   // replace `Xbest` with `X1` if f(X1) <= f(Xbest)
   if (objective(iter) <= ComputeObjective(Xbest)) Xbest = X1;
 
-  // // if the difference of subsequent solutions is smaller than the tolerance
-  // // set the solver `status` to "solved"
-  // if (arma::sum(arma::sum(arma::square(X1 - X0))) / (N * N) < tolerance) {
-  //   status = "solved";
-  // }
-
 };
 
 // compute objective value for given X
-double MarkovitzRRRSolver::ComputeObjective(const arma::mat& X) const {
+double MarkovitzRRRSolver::ComputeDefaultObjective(const arma::mat& X) const {
 
   // store R * X
   const arma::mat RX = R * X;
 
   // return the objective function at X
-  // 0.5 ||R - R * X||_F^2 + lambda ||R * X||
+  // 0.5 ||R - RX||_F^2 + lambda ||RX||
   return 0.5 * arma::sum(arma::sum(arma::square(R - RX))) +
     lambda * arma::sum(arma::svd(RX));
+
+};
+
+// compute objective value for given X
+double MarkovitzRRRSolver::ComputeAlternativeObjective(const arma::mat& X) const {
+
+  // return the objective function at X
+  // 0.5 ||R - RX||_F^2 + lambda ||RX||
+  return 0.5 * arma::sum(arma::sum(arma::square(R - R * X))) +
+    lambda * arma::sum(arma::svd(X));
 
 };
 
@@ -249,6 +254,62 @@ arma::rowvec MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
 ///////////////
 /// setters ///
 
+// set `ComputeObjective` according to `objective_type`:
+// `'d'` for default, i.e., objective given by
+// `.5||R - RX||_F^2 + lambda * ||RX||_*`;
+// `'a'` for alternative, i.e., objective given by
+// `.5||R - RX||_F^2 + lambda * ||X||_*`. Default is `'d'`.
+std::function<double(const arma::mat&)> MarkovitzRRRSolver::SetObjectiveFunction(
+  const char objective_type
+) const {
+
+  switch (objective_type) {
+
+  case 'd':
+    // return [this](const arma::mat& X) -> double { return ComputeDefaultObjective(X); };
+    return std::bind(
+      &MarkovitzRRRSolver::ComputeDefaultObjective,
+      this,
+      std::placeholders::_1
+    );
+
+  default:
+    // return [this](const arma::mat& X) -> double { return ComputeAlternativeObjective(X); };
+    return std::bind(
+      &MarkovitzRRRSolver::ComputeAlternativeObjective,
+      this,
+      std::placeholders::_1
+    );
+
+  }
+
+}
+
+// set `ComputeSubgradient` according to `penalty_type`:
+// if `penalty_type` = 'a' for alternative, then the subgradient accounts for
+// the penalty `lambda ||X||_*`. Otherwise, as default, it accounts for the
+// penalty `lambda ||R * X||_*`, for which there are two implementations,
+// one computing each time `svd(R * X)=USV'`, and the other one computing once
+// `svd(R)=USV'` and each time computing `qr(X'V)=QA` and `svd(AS)`.
+// the latter option is desirable when T>>N.
+std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
+  const char penalty_type
+) {
+
+  switch (penalty_type) {
+
+  case 'd':
+    return (double)N/T >= .9 ?
+      std::bind(&MarkovitzRRRSolver::ComputeSubgradientForLargeN, this) :
+      std::bind(&MarkovitzRRRSolver::ComputeSubgradientForSmallN, this);
+
+  default:
+    return std::bind(&MarkovitzRRRSolver::ComputeSubgradientAlternative, this);
+
+  }
+
+}
+
 // set function `ComputeStepSize` according to `step_size_type`:
 // if `step_size_type` = 'c' for constant, then the returned function computes a
 // constant step size: `step_size = step_size_constant`.
@@ -267,49 +328,24 @@ std::function<double(void)> MarkovitzRRRSolver::SetStepSizeFunction(
 
   switch (step_size_type) {
 
-  case 'c':
-    return std::bind(&MarkovitzRRRSolver::ComputeStepSizeConstant, this);
-
-  case 'l':
-    return std::bind(&MarkovitzRRRSolver::ComputeStepSizeConstantStepLength, this);
+  case 'd':
+    return std::bind(&MarkovitzRRRSolver::ComputeStepSizeNotSummableVanishing, this);
 
   case 's':
     return std::bind(&MarkovitzRRRSolver::ComputeStepSizeSquareSummableNotSummable, this);
+
+  case 'l':
+    return std::bind(&MarkovitzRRRSolver::ComputeStepSizeConstantStepLength, this);
 
   case 'p':
     return std::bind(&MarkovitzRRRSolver::ComputeStepSizeModifiedPolyak, this);
 
   default:
-    return std::bind(&MarkovitzRRRSolver::ComputeStepSizeNotSummableVanishing, this);
+    return std::bind(&MarkovitzRRRSolver::ComputeStepSizeConstant, this);
 
   }
 
 };
-
-// set `ComputeSubgradient` according to `penalty_type`:
-// if `penalty_type` = 'a' for alternative, then the subgradient accounts for
-// the penalty `lambda ||X||_*`. Otherwise, as default, it accounts for the
-// penalty `lambda ||R * X||_*`, for which there are two implementations,
-// one computing each time `svd(R * X)=USV'`, and the other one computing once
-// `svd(R)=USV'` and each time computing `qr(X'V)=QA` and `svd(AS)`.
-// the latter option is desirable when T>>N.
-std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
-  const char penalty_type
-) {
-
-  switch (penalty_type) {
-
-  case 'a':
-    return std::bind(&MarkovitzRRRSolver::ComputeSubgradientAlternative, this);
-
-  default:
-    return (double)N/T >= .9 ?
-      std::bind(&MarkovitzRRRSolver::ComputeSubgradientForLargeN, this) :
-      std::bind(&MarkovitzRRRSolver::ComputeSubgradientForSmallN, this);
-
-  }
-
-}
 
 // set lambda
 void MarkovitzRRRSolver::SetLambda(const double lambda) {

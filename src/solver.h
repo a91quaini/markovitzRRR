@@ -5,13 +5,19 @@
 
 #include <RcppArmadillo.h>
 
+//// Definition of constants used by the solver
+const char default_choice_type = 'd';
+const double default_step_size_constant = 1.e-3;
+const unsigned int default_max_iter = 10000;
+const double default_tolerance = -1.;
+
 //// Definition of MarkovitzRRRSolver
 
 class MarkovitzRRRSolver {
   // optimization solver for following optimization problem over R^(NxN)
-  // minimize_X {0.5 ||R - R * X||_F^2 + lambda ||R * X||_* | diag(X) = 0}
+  // minimize_X {0.5 ||R - RX||_F^2 + lambda ||RX||_* | diag(X) = 0}
   // or the alternative
-  // minimize_X {0.5 ||R - R * X||_F^2 + lambda ||X||_* | diag(X) = 0},
+  // minimize_X {0.5 ||R - RX||_F^2 + lambda ||X||_* | diag(X) = 0},
   // where ||.||_F denotes the Frobenious norm and ||.||_* the nuclear norm
 
   // members directly accessible only inside the class
@@ -35,17 +41,18 @@ private:
   double lambda;
   // objective function
   arma::vec objective;
+  const std::function<double(const arma::mat&)> ComputeObjective;
   // subgradient
   arma::mat subgradient;
   // function computing the subgradient
-  std::function<void(void)> ComputeSubgradient;
+  const std::function<void(void)> ComputeSubgradient;
   // useful for subgradient
   arma::mat U, V;
   arma::vec sv;
   // step size
   const double step_size_constant;
   // function computing the step size
-  std::function<double(void)> ComputeStepSize;
+  const std::function<double(void)> ComputeStepSize;
   // iterations
   const unsigned int max_iter;
   unsigned int iter;
@@ -61,11 +68,12 @@ public:
     const arma::mat& R,
     const arma::mat& X0,
     const double lambda,
-    const char penalty_type = 'd',
-    const char step_size_type = 'd',
-    const double step_size_constant = 1.e-3,
-    const unsigned int max_iter = 10000,
-    const double tolerance = -1.
+    const char objective_type = default_choice_type,
+    const char penalty_type = default_choice_type,
+    const char step_size_type = default_choice_type,
+    const double step_size_constant = default_step_size_constant,
+    const unsigned int max_iter = default_max_iter,
+    const double tolerance = default_tolerance
   );
 
   // Solve the optimization problem using the projected subgradient path
@@ -75,10 +83,16 @@ public:
   void ComputeProjectedSubgradientStep(const unsigned int iter);
 
   // compute the objective function at a given X
-  double ComputeObjective(const arma::mat& X) const;
+  std::function<double(const arma::mat&)> SetObjectiveFunction(
+    const char objective_type
+  ) const;
+  double ComputeDefaultObjective(const arma::mat& X) const;
+  double ComputeAlternativeObjective(const arma::mat& X) const;
 
   // compute `step_size` at the current iteration
-  std::function<double(void)> SetStepSizeFunction(const char step_size_type) const;
+  std::function<double(void)> SetStepSizeFunction(
+    const char step_size_type
+  ) const;
   double ComputeStepSizeConstant() const;
   double ComputeStepSizeConstantStepLength() const;
   double ComputeStepSizeNotSummableVanishing() const;

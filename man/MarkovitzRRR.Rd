@@ -8,6 +8,7 @@
 MarkovitzRRR(
   returns,
   penalty_parameters,
+  objective_type = "d",
   penalty_type = "d",
   step_size_type = "d",
   step_size_constant = 0.001,
@@ -26,7 +27,12 @@ excess returns.}
 vector of penalty
 parameter values from smallest to largest; for now it is just a positive number.}
 
-\item{penalty_type}{character indicating the type of penalty function:  \code{'d'}
+\item{objective_type}{character indicating the type of objective function:
+\code{'d'} for default, i.e., objective given by \verb{.5||R - RX||_F^2 + lambda * ||RX||_*};
+\code{'a'} for alternative, i.e.,
+objective given by \verb{.5||R - RX||_F^2 + lambda * ||X||_*}. Default is \code{'d'}.}
+
+\item{penalty_type}{character indicating the type of penalty function: \code{'d'}
 for default, i.e., penalty given by \verb{||RX||_*}; \code{'a'} for alternative, i.e.,
 penalty given by \verb{||X||_*}. Default is \code{'d'}.}
 

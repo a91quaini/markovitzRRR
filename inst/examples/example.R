@@ -7,7 +7,7 @@ variance_returns = diag(1., n_assets)
 returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
 
 # ## or use real dataset of returns -> in this case CVX has a memory failure
-# returns = markovitzRRR::returns[,-1]
+# returns = markovitzRRR::returns[,2:26]
 # n_assets = ncol(returns)
 
 # set penalty parameter lambda
@@ -19,6 +19,7 @@ start_time_markovitz <- Sys.time()
 markovitz_solution = markovitzRRR::MarkovitzRRR(
   returns,
   lambda,
+  objective_type = 'd',
   penalty_type = 'd',
   step_size_type = 'd',
   step_size_constant = .5e-2,
