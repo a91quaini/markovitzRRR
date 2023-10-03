@@ -22,15 +22,13 @@
 #' for default, i.e., penalty given by `||RX||_*`; `'a'` for alternative, i.e.,
 #' penalty given by `||X||_*`. Default is `'d'`.
 #' @param step_size_type character indicating the type of step size:
-#' `'c'` for constant step size equal to `step_size_constant`;
-#' `'l'` for constant step length, where step size is given by
-#' `step_size_constant / ||subgradient||_F`.
-#' `'d'` for default, i.e., not summable vanishing step size given by
+#' `'d'` for default, i.e., not summable vanishing:
 #' `step_size_constant / sqrt(iter + 1)`;
-#' `'s'` for square
-#' summable but not summable given by `step_size_constant / (iter + 1)`;
-#' `'p'` for modified Polyak given by
-#' `(step_size_constant + objective - min{objective_k | k=0,...,iter} ) / ||subgradient)||_F`.
+#' `'s'` for square summable but not summable: `step_size_constant / (iter + 1)`;
+#' `'l'` for constant step length: `step_size_constant / ||subgradient||_F`.
+#' `'p'` for modified Polyak:
+#' `(step_size_constant + objective_iter - min{objective_k | k=0,...,iter}) / ||subgradient)||_F`.
+#' `'c'` for constant step size: `step_size_constant`.
 #' Default is `'d'`.
 #' @param step_size_constant numeric constant determining the step size. Default
 #' is `1.e-3`

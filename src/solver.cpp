@@ -102,16 +102,17 @@ void MarkovitzRRRSolver::ComputeProjectedSubgradientStep(const unsigned int iter
   // compute the subgradient, stored in `this->subgradient`
   ComputeSubgradient();
 
-  // update `X1`, remember that `X1` = `X0` before this computation
+  // update `X1`, i.e., `X1 = X0 - step_size * subgradient`
+  // remember that `X1` = `X0` before this computation
   X1 -= ComputeStepSize() * subgradient;
 
-  // project `X1` on the space of hollow matrices
+  // project `X1` on the space of hollow matrices --> zero out the diagonal
   X1.diag().zeros();
 
   // store objective function at `X1`
   objective(iter) = ComputeObjective(X1);
 
-  // replace `Xbest` with `X1` if f(X1) <= f(Xbest)
+  // replace `Xbest` with `X1` if `f(X1) <= f(Xbest)`
   if (objective(iter) <= ComputeObjective(Xbest)) Xbest = X1;
 
 };
@@ -123,9 +124,9 @@ double MarkovitzRRRSolver::ComputeDefaultObjective(const arma::mat& X) const {
   const arma::mat RX = R * X;
 
   // return the objective function at X
-  // 0.5 ||R - RX||_F^2 + lambda ||RX||
-  return 0.5 * arma::sum(arma::sum(arma::square(R - RX))) +
-    lambda * arma::sum(arma::svd(RX));
+  // 1/2 ||R - RX||_F^2 + lambda ||RX||
+  return .5 * arma::accu(arma::square(R - RX)) +
+    lambda * arma::accu(arma::svd(RX));
 
 };
 
@@ -133,9 +134,9 @@ double MarkovitzRRRSolver::ComputeDefaultObjective(const arma::mat& X) const {
 double MarkovitzRRRSolver::ComputeAlternativeObjective(const arma::mat& X) const {
 
   // return the objective function at X
-  // 0.5 ||R - RX||_F^2 + lambda ||RX||
-  return 0.5 * arma::sum(arma::sum(arma::square(R - R * X))) +
-    lambda * arma::sum(arma::svd(X));
+  // 1/2 ||R - RX||_F^2 + lambda ||RX||
+  return .5 * arma::accu(arma::square(R - R * X)) +
+    lambda * arma::accu(arma::svd(X));
 
 };
 
@@ -243,11 +244,11 @@ arma::rowvec MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
   // compute the unscaled optimal weights: Sigma^(-1)'1 where Sigma^(-1),
   // the inverse variance covariance matrix of returns, is computed via
   // the solution X and the marginal variances of the residuals
-  const arma::rowvec weights = sum(
-    arma::diagmat(residuals_variance) * (arma::eye(N, N) - Xbest)
+  const arma::rowvec weights = arma::sum(
+    arma::diagmat(residuals_variance) * (arma::eye(N, N) - Xbest), 0
   );
 
-  return weights / arma::sum(weights);
+  return weights / arma::accu(weights);
 
 }
 
@@ -311,16 +312,19 @@ std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
 }
 
 // set function `ComputeStepSize` according to `step_size_type`:
-// if `step_size_type` = 'c' for constant, then the returned function computes a
-// constant step size: `step_size = step_size_constant`.
-// if `step_size_type` = 'l' for length, then the returned function computes a
-// step size that keeps a constant step length:
-// `step_size = step_size_constant / ||subgradient||_F`.
+// if `step_size_type` = 'd' for default, the function computes a not summable
+// vanishing step size: `step_size = step_size_constant / sqrt(iter + 1)`.
 // if `step_size_type` = 's' for square summable, then the returned function
 // computes a square summable but not summable step size:
 // `step_size = step_size_constant / (iter + 1)`.
-// otherwise the function computes a not summable vanishing step size:
-// `step_size = step_size_constant / sqrt(iter + 1)`.
+// if `step_size_type` = 'l' for length, then the returned function computes a
+// step size that keeps a constant step length:
+// `step_size = step_size_constant / ||subgradient||_F`.
+// if `step_size_type` = 'p' for Polyak's, then the returned function computes a
+// modified Polyak's step size:
+// `step_size = (step_size_constant - objective_iter + min{objective_i : i=1,..,iter}) / ||subgradient||_F`.
+// if `step_size_type` = 'c' for constant, then the returned function computes a
+// constant step size: `step_size = step_size_constant`.
 // default is `step_size_type` = 'd'.
 std::function<double(void)> MarkovitzRRRSolver::SetStepSizeFunction(
     const char step_size_type

@@ -37,15 +37,13 @@ for default, i.e., penalty given by \verb{||RX||_*}; \code{'a'} for alternative,
 penalty given by \verb{||X||_*}. Default is \code{'d'}.}
 
 \item{step_size_type}{character indicating the type of step size:
-\code{'c'} for constant step size equal to \code{step_size_constant};
-\code{'l'} for constant step length, where step size is given by
-\verb{step_size_constant / ||subgradient||_F}.
-\code{'d'} for default, i.e., not summable vanishing step size given by
+\code{'d'} for default, i.e., not summable vanishing:
 \code{step_size_constant / sqrt(iter + 1)};
-\code{'s'} for square
-summable but not summable given by \code{step_size_constant / (iter + 1)};
-\code{'p'} for modified Polyak given by
-\verb{(step_size_constant + objective - min\{objective_k | k=0,...,iter\} ) / ||subgradient)||_F}.
+\code{'s'} for square summable but not summable: \code{step_size_constant / (iter + 1)};
+\code{'l'} for constant step length: \verb{step_size_constant / ||subgradient||_F}.
+\code{'p'} for modified Polyak:
+\verb{(step_size_constant + objective_iter - min\{objective_k | k=0,...,iter\}) / ||subgradient)||_F}.
+\code{'c'} for constant step size: \code{step_size_constant}.
 Default is \code{'d'}.}
 
 \item{step_size_constant}{numeric constant determining the step size. Default
