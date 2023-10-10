@@ -18,7 +18,7 @@ returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
 
 # Set penalty parameter lambda
 lambda = 0.05
-# tau = 0.5
+tau = 0.5
 
 ## markovitzRRR
 markovitzRRR_function = function() {
@@ -33,14 +33,14 @@ markovitzRRR_function = function() {
   ))
 }
 
-# markovitzRRRalt_function = function() {
-#   return(MarkovitzRRRAlt(
-#     returns,
-#     tau,
-#     max_iter = 10000,
-#     tolerance = -1.
-#   ))
-# }
+markovitzRRRalt_function = function() {
+  return(MarkovitzRRRAlt(
+    returns,
+    tau,
+    max_iter = 10000,
+    tolerance = -1.
+  ))
+}
 
 ## CVXR
 X = CVXR::Variable(n_assets, n_assets)
@@ -66,12 +66,14 @@ cvxr_function = function() {
 
 # check solutions
 markovitzRRR_solution = markovitzRRR_function()
-# markovitzRRRalt_solution = markovitzRRRalt_function()
+markovitzRRRalt_solution = markovitzRRRalt_function()
 cvxr_solution = cvxr_function()
 # cvxr_constr_solution = cvxr_constr_function()
 # plot(1:length(markovitzRRRalt_solution$objective), markovitzRRRalt_solution$objective)
 # cvxr_constr_solution$value
 PlotMarkovitzRRRObjective(markovitzRRR_solution)
+PlotMarkovitzRRRObjective(markovitzRRRalt_solution)
+
 
 cat("MarkovitzRRR optimal value = ", round(min(markovitzRRR_solution$objective), 5), "\n")
 # cat("MarkovitzRRRAlt optimal value = ", round(min(markovitzRRRalt_solution$objective), 5), "\n")

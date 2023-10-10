@@ -9,8 +9,8 @@
 #' @name MarkovitzRRR
 #' @description Computes Markovitz RRR
 #'
-#' @param returns `n_observations x n_returns`-dimensional matrix of test asset
-#' excess returns.
+#' @param returns `n_observations x n_returns`-dimensional matrix of centred(!)
+#' test asset excess returns.
 #' @param penalty_parameter a positive number indicating the penalty parameter.
 #' @param initial_solution `n_returns x n_returns`-dimensional matrix of initial
 #' hedging weights. Defaults is a hollow matrix with `1/N` as off-diagonal elements.

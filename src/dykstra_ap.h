@@ -10,9 +10,9 @@
 
 class DykstraAP {
   // optimization solver for finding solving:
-  // min_X {||R - RX||_F | X in A intersection B}
+  // min_X {||R - RX||_F | X in A and B}
   // where, for given tau > 0:
-  // A = {RX | ||RX||_* <= tau}
+  // A = {Z | ||Z||_* <= tau}
   // B = {RX | diag(X)=0} or
   // B = {RX | diag(X)=0, ||Xi||_F <= lambda, for i = 1,...,N}
   // where ||.||_F denotes the Frobenious norm and ||.||_* the nuclear norm.
@@ -45,13 +45,14 @@ private:
   // problem parameters
   double lambda;
   double tau;
+  // iterations
+  const unsigned int max_iter;
+  unsigned int iter;
   // objective function
-  std::vector<double> objective;
+  arma::rowvec objective;
   // svd decomposition
   arma::mat U, V;
   arma::vec sv;
-  // iterations
-  const unsigned int max_iter;
   // tolerance
   const double tolerance;
 
@@ -82,8 +83,8 @@ public:
   // compute the objective function
   double ComputeObjective() const;
 
-  // // compute the optimal portfolio weights
-  // arma::rowvec ComputeOptimalPortfolioWeights();
+  // compute the optimal portfolio weights
+  void ComputeOptimalPortfolioWeights();
 
   // // set RiRi, where Ri is matrix R without the i-th column
   // const std::vector<arma::mat>& SetRiRi();
@@ -95,10 +96,16 @@ public:
   void SetX0ToHollow1OverN();
 
   // get the vector of objective function evaluation at each iteration
-  const std::vector<double>& GetObjective() const;
+  const arma::rowvec& GetObjective() const;
 
   // get the solver solution
   const arma::mat& GetSolution() const;
+
+  // get the optimal portfolio weights
+  const arma::rowvec& GetWeights() const;
+
+  // get number of iterations
+  const unsigned int GetIterations() const;
 
 };
 

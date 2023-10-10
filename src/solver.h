@@ -34,10 +34,13 @@ private:
   arma::rowvec weights;
   // penalty parameter
   double lambda;
+  // iterations
+  const unsigned int max_iter;
+  unsigned int iter;
   // objective function
   const char penalty_type;
   const std::function<double()> ComputeObjective;
-  arma::vec objective;
+  arma::rowvec objective;
   double objective_best;
   // subgradient
   const std::function<void(void)> ComputeSubgradient;
@@ -49,9 +52,6 @@ private:
   const char step_size_type;
   const double step_size_constant;
   const std::function<double(void)> ComputeStepSize;
-  // iterations
-  const unsigned int max_iter;
-  unsigned int iter;
   // tolerance
   const double tolerance;
 
@@ -106,7 +106,7 @@ public:
   void SetX0ToHollow1OverN();
 
   // get the vector of objective function evaluation at each iteration
-  const arma::vec& GetObjective() const;
+  const arma::rowvec& GetObjective() const;
 
   // get the solver solution
   const arma::mat& GetSolution() const;

@@ -15,20 +15,22 @@ DykstraAP::DykstraAP(
   R(R),
   T(R.n_rows),
   N(R.n_cols),
-  X(arma::zeros(N, N)),
+  X(N, N),
   PB(R),
-  IA(arma::zeros(T, N)),
-  IB(arma::zeros(T, N)),
+  IA(T, N),
+  IB(T, N),
   // RiRi(SetRiRi()),
   assets_idx(arma::regspace<arma::uvec>(0, N-1)),
   lambda(lambda),
   tau(tau),
   max_iter(max_iter),
+  iter(1),
+  objective(max_iter),
   tolerance(tolerance)
 {
 
   // compute the objective function at `X`
-  objective.push_back(ComputeObjective());
+  objective(0) = ComputeObjective();
 
   // // if N is small compared to T, the `ComputeSubgradient` function assumes
   // // that the svd of R is computed and stored in U, sv and V
@@ -46,16 +48,18 @@ DykstraAP::DykstraAP(
 // Solve the optimization problem
 void DykstraAP::Solve() {
 
-  unsigned int iter = 0;
-
   // main loop with solution check
   if (tolerance > 0) {
 
-    while(++iter < max_iter) {
+    // containers for increments IA and IB
+    arma::mat IA0;
+    arma::mat IB0;
+
+    do {
 
       // store current increments IA and IB
-      const arma::mat IA0 = IA;
-      const arma::mat IB0 = IB;
+      IA0 = IA;
+      IB0 = IB;
 
       // Compute the projection of `PB + IA` on A = {RX | ||RX||_* <= tau}
       // and update `IA`.
@@ -66,21 +70,24 @@ void DykstraAP::Solve() {
       StepB();
 
       // compute the objective function at `X`
-      objective.push_back(ComputeObjective());
+      objective(iter) = ComputeObjective();
 
-      // if `||IA - IA0||_F^2 + ||IB - IB0||_F^2 < tolerance`, quit loop.
-      if (arma::accu(arma::square(IA - IA0)) +
-            arma::accu(arma::square(IB - IB0)) < tolerance) {
-        break;
-      }
+    } while (
+      // while iter < max_iter - 1
+      (++iter < max_iter) &&
+      // and `||IA - IA0||_F^2 + ||IB - IB0||_F^2 < tolerance`, quit loop.
+      (arma::accu(arma::square(IA - IA0)) +
+      arma::accu(arma::square(IB - IB0)) > tolerance)
+    );
 
-    }
+    // remove elements in excess in `objective`
+    objective = objective.head(iter);
 
   // main loop without solution check
   } else {
 
     // main loop
-    while(++iter < max_iter) {
+    do {
 
       // Compute the projection of `PB + IA` on A = {RX | ||RX||_* <= tau}
       // and update `IA`.
@@ -91,9 +98,9 @@ void DykstraAP::Solve() {
       StepB();
 
       // compute the objective function at `X`
-      objective.push_back(ComputeObjective());
+      objective(iter) = ComputeObjective();
 
-    }
+    } while (++iter < max_iter);
 
   }
 
@@ -107,7 +114,7 @@ void DykstraAP::StepA() {
   // note: in the first iteration, `PB = R` and `IA = 0`
   svd(U, sv, V, PB + IA);
 
-  // project the singular values of `PB + IA` onto the unit simplex
+  // project the singular values of `PB + IA` onto the simplex of radius `tau`
   sv *= tau / arma::accu(sv);
   sv.clamp(0., arma::datum::inf);
 
@@ -126,7 +133,7 @@ void DykstraAP::StepA() {
 // along the non-diagonal elements of `X`.
 void DykstraAP::StepB() {
 
-  for (unsigned int i=0; i<N; ++i) {
+  for (unsigned int i = 0; i < N; ++i) {
 
     // const arma::uvec columns = join_vert(
     //   assets_idx.head(i),
@@ -196,7 +203,7 @@ void DykstraAP::SetLambda(const double lambda) {
 /// getters ///
 
 // get objective
-const std::vector<double>& DykstraAP::GetObjective() const {
+const arma::rowvec& DykstraAP::GetObjective() const {
   return objective;
 };
 

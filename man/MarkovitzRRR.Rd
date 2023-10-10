@@ -20,8 +20,8 @@ MarkovitzRRR(
 PlotMarkovitzRRRObjective(results)
 }
 \arguments{
-\item{returns}{\verb{n_observations x n_returns}-dimensional matrix of test asset
-excess returns.}
+\item{returns}{\verb{n_observations x n_returns}-dimensional matrix of centred(!)
+test asset excess returns.}
 
 \item{penalty_parameter}{a positive number indicating the penalty parameter.}
 

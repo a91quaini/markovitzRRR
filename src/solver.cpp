@@ -21,15 +21,15 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   X(X0),
   Xbest(X0),
   lambda(lambda),
+  max_iter(max_iter),
+  iter(1),
   penalty_type(penalty_type),
   ComputeObjective(SetObjectiveFunction()),
-  objective(arma::vec(max_iter)),
+  objective(max_iter),
   ComputeSubgradient(SetSubgradientFunction()),
   step_size_type(step_size_type),
   step_size_constant(step_size_constant),
   ComputeStepSize(SetStepSizeFunction()),
-  max_iter(max_iter),
-  iter(1),
   tolerance(tolerance)
 {
 
@@ -67,17 +67,14 @@ void MarkovitzRRRSolver::Solve() {
       ComputeProjectedSubgradientStep();
 
     } while(
-        // and iter < max_iter - 1
-        (++iter < max_iter - 1) &&
-        // while ||X - X0||_F^2 > tolerance
+        // while iter < max_iter - 1
+        (++iter < max_iter) &&
+        // and ||X - X0||_F^2 > tolerance
         (arma::accu(arma::square(X - X0)) > tolerance)
     );
 
-    /// not to waste the last new `X0`, finalize with one more step
-    ComputeProjectedSubgradientStep();
-
     // remove elements in excess in `objective`
-    objective = objective.head(iter + 1);
+    objective = objective.head(iter);
 
   // main loop without solution check
   } else {
@@ -91,10 +88,7 @@ void MarkovitzRRRSolver::Solve() {
       // Compute the projected subgradient step based on the current iteration
       ComputeProjectedSubgradientStep();
 
-    } while(++iter < max_iter - 1);
-
-    // not to waste the last new `X0`, finalize with one more step
-    ComputeProjectedSubgradientStep();
+    } while(++iter < max_iter);
 
   }
 
@@ -246,15 +240,16 @@ void MarkovitzRRRSolver::ComputeSubgradientAlternative() {
 // compute the optimal portfolio weights
 void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
 
-  // compute the marginal variances of the residuals between returns R and
-  // hedging returns R * X
-  const arma::rowvec residuals_variance = arma::var(R - R * Xbest, 0, 0);
+  // compute the inverse marginal variances of the residuals between returns
+  // R and hedging returns R * X
+  const arma::mat residuals_variance_inv =
+    1. / arma::diagmat(arma::var(R - R * Xbest, 0, 0));
 
   // compute the unscaled optimal weights: Sigma^(-1)'1 where Sigma^(-1),
   // the inverse variance covariance matrix of returns, is computed via
   // the solution X and the marginal variances of the residuals
   weights = arma::sum(
-    arma::diagmat(1. / residuals_variance) * (arma::eye(N, N) - Xbest), 0
+    residuals_variance_inv - residuals_variance_inv * Xbest, 0
   );
 
   // project weights into the unit simplex
@@ -372,7 +367,7 @@ void MarkovitzRRRSolver::SetX0ToHollow1OverN () {
 /// getters ///
 
 // get objective
-const arma::vec& MarkovitzRRRSolver::GetObjective() const {
+const arma::rowvec& MarkovitzRRRSolver::GetObjective() const {
   return objective;
 };
 
