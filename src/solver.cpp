@@ -18,8 +18,7 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   R(R),
   T(R.n_rows),
   N(R.n_cols),
-  X0(X0),
-  X1(X0),
+  X(X0),
   Xbest(X0),
   lambda(lambda),
   penalty_type(penalty_type),
@@ -35,7 +34,7 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
 {
 
   // compute the objective function at `X0`
-  objective(0) = ComputeObjective(X0);
+  objective(0) = ComputeObjective();
   // set the best objective value to `objective(0)`
   objective_best = objective(0);
 
@@ -61,17 +60,17 @@ void MarkovitzRRRSolver::Solve() {
     // main loop
     do {
 
+      // set `X0` to `X`
+      X0 = X;
+
       // Compute the projected subgradient step based on the current iteration
       ComputeProjectedSubgradientStep();
-
-      // update `X0` to `X1`
-      X0 = X1;
 
     } while(
         // and iter < max_iter - 1
         (++iter < max_iter - 1) &&
-        // while ||X1 - X0||_F^2 > tolerance
-        (arma::accu(arma::square(X1 - X0)) > tolerance)
+        // while ||X - X0||_F^2 > tolerance
+        (arma::accu(arma::square(X - X0)) > tolerance)
     );
 
     /// not to waste the last new `X0`, finalize with one more step
@@ -84,15 +83,15 @@ void MarkovitzRRRSolver::Solve() {
   } else {
 
     // main loop
-    while(++iter < max_iter - 1) {
+    do {
+
+      // set `X0` to `X`
+      X0 = X;
 
       // Compute the projected subgradient step based on the current iteration
       ComputeProjectedSubgradientStep();
 
-      // update `X0` to `X1`
-      X0 = X1;
-
-    }
+    } while(++iter < max_iter - 1);
 
     // not to waste the last new `X0`, finalize with one more step
     ComputeProjectedSubgradientStep();
@@ -107,28 +106,28 @@ void MarkovitzRRRSolver::ComputeProjectedSubgradientStep() {
   // compute the subgradient, stored in `this->subgradient`
   ComputeSubgradient();
 
-  // update `X1`, i.e., `X1 = X0 - step_size * subgradient`
-  // remember that `X1` = `X0` before this computation
-  X1 -= ComputeStepSize() * subgradient;
+  // update `X`, i.e., `X = X0 - step_size * subgradient`
+  // remember that `X` = `X0` before this computation
+  X -= ComputeStepSize() * subgradient;
 
-  // project `X1` on the space of hollow matrices --> zero out the diagonal
-  X1.diag().zeros();
+  // project `X` on the space of hollow matrices --> zero out the diagonal
+  X.diag().zeros();
 
-  // store objective function at `X1`
-  objective(iter) = ComputeObjective(X1);
+  // store objective function at `X`
+  objective(iter) = ComputeObjective();
 
-  // replace `Xbest` with `X1` if `f(X1) <= f(Xbest)` and update `objective_best`
+  // replace `Xbest` with `X` if `f(X) <= f(Xbest)` and update `objective_best`
   if (objective(iter) <= objective_best) {
 
     objective_best = objective(iter);
-    Xbest = X1;
+    Xbest = X;
 
   }
 
 };
 
 // compute objective value for given X
-double MarkovitzRRRSolver::ComputeDefaultObjective(const arma::mat& X) const {
+double MarkovitzRRRSolver::ComputeDefaultObjective() const {
 
   // store R * X
   const arma::mat RX = R * X;
@@ -141,7 +140,7 @@ double MarkovitzRRRSolver::ComputeDefaultObjective(const arma::mat& X) const {
 };
 
 // compute objective value for given X
-double MarkovitzRRRSolver::ComputeAlternativeObjective(const arma::mat& X) const {
+double MarkovitzRRRSolver::ComputeAlternativeObjective() const {
 
   // return the objective function at X
   // 1/2 ||R - RX||_F^2 + lambda ||RX||
@@ -271,7 +270,7 @@ void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
 // `.5||R - RX||_F^2 + lambda * ||RX||_*`;
 // `'a'` for alternative, i.e., objective given by
 // `.5||R - RX||_F^2 + lambda * ||X||_*`. Default is `'d'`.
-std::function<double(const arma::mat&)> MarkovitzRRRSolver::SetObjectiveFunction() const {
+std::function<double(void)> MarkovitzRRRSolver::SetObjectiveFunction() const {
 
   switch (penalty_type) {
 
@@ -279,16 +278,16 @@ std::function<double(const arma::mat&)> MarkovitzRRRSolver::SetObjectiveFunction
     // return [this](const arma::mat& X) -> double { return ComputeDefaultObjective(X); };
     return std::bind(
       &MarkovitzRRRSolver::ComputeDefaultObjective,
-      this,
-      std::placeholders::_1
+      this//,
+      //std::placeholders::_1
     );
 
   default:
     // return [this](const arma::mat& X) -> double { return ComputeAlternativeObjective(X); };
     return std::bind(
       &MarkovitzRRRSolver::ComputeAlternativeObjective,
-      this,
-      std::placeholders::_1
+      this//,
+      //std::placeholders::_1
     );
 
   }
@@ -385,4 +384,9 @@ const arma::mat& MarkovitzRRRSolver::GetSolution() const {
 // get the optimal portfolio weights
 const arma::rowvec& MarkovitzRRRSolver::GetWeights() const {
   return weights;
+};
+
+// get number of iterations
+const unsigned int MarkovitzRRRSolver::GetIterations() const {
+  return iter;
 };

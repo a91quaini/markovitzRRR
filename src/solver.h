@@ -27,8 +27,8 @@ private:
 
   //// solver internal data
   // solutions
+  arma::mat X;
   arma::mat X0;
-  arma::mat X1;
   arma::mat Xbest;
   // optimal portfolio weights
   arma::rowvec weights;
@@ -36,7 +36,7 @@ private:
   double lambda;
   // objective function
   const char penalty_type;
-  const std::function<double(const arma::mat&)> ComputeObjective;
+  const std::function<double()> ComputeObjective;
   arma::vec objective;
   double objective_best;
   // subgradient
@@ -78,9 +78,9 @@ public:
   void ComputeProjectedSubgradientStep();
 
   // compute the objective function at a given X
-  std::function<double(const arma::mat&)> SetObjectiveFunction() const;
-  double ComputeDefaultObjective(const arma::mat& X) const;
-  double ComputeAlternativeObjective(const arma::mat& X) const;
+  std::function<double(void)> SetObjectiveFunction() const;
+  double ComputeDefaultObjective() const;
+  double ComputeAlternativeObjective() const;
 
   // compute `step_size` at the current iteration
   std::function<double(void)> SetStepSizeFunction() const;
@@ -113,6 +113,9 @@ public:
 
   // get the optimal portfolio weights
   const arma::rowvec& GetWeights() const;
+
+  // get number of iterations
+  const unsigned int GetIterations() const;
 
 };
 

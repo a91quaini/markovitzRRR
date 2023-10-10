@@ -44,7 +44,8 @@ Rcpp::List MarkovitzRRRCpp(
   return Rcpp::List::create(
     Rcpp::Named("solution") = solver.GetSolution(),
     Rcpp::Named("objective") = solver.GetObjective(),
-    Rcpp::Named("weights") = solver.GetWeights()
+    Rcpp::Named("weights") = solver.GetWeights(),
+    Rcpp::Named("iterations") = solver.GetIterations()
   );
 
 }

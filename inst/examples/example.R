@@ -18,7 +18,7 @@ returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
 
 # Set penalty parameter lambda
 lambda = 0.05
-tau = 0.5
+# tau = 0.5
 
 ## markovitzRRR
 markovitzRRR_function = function() {
@@ -29,7 +29,7 @@ markovitzRRR_function = function() {
     step_size_type = 'd',
     step_size_constant = 0.5e-2,
     max_iter = 10000,
-     tolerance = 1e-12
+    tolerance = 1e-12
   ))
 }
 
@@ -71,6 +71,7 @@ cvxr_solution = cvxr_function()
 # cvxr_constr_solution = cvxr_constr_function()
 # plot(1:length(markovitzRRRalt_solution$objective), markovitzRRRalt_solution$objective)
 # cvxr_constr_solution$value
+PlotMarkovitzRRRObjective(markovitzRRR_solution)
 
 cat("MarkovitzRRR optimal value = ", round(min(markovitzRRR_solution$objective), 5), "\n")
 # cat("MarkovitzRRRAlt optimal value = ", round(min(markovitzRRRalt_solution$objective), 5), "\n")
@@ -79,8 +80,8 @@ cat("CVX optimal value = ", round(cvxr_solution$value, 5), "\n")
 
 cat("Distance between MarkovitzRRR and CVX solutions = ",
     round(sum((markovitzRRR_solution$solution - cvxr_solution$getValue(X))^2), 15), "\n")
-cat("Distance between MarkovitzRRRalt and CVX solutions = ",
-    round(sum((markovitzRRRalt_solution$solution - cvxr_solution$getValue(X))^2), 15), "\n")
+# cat("Distance between MarkovitzRRRalt and CVX solutions = ",
+#     round(sum((markovitzRRRalt_solution$solution - cvxr_solution$getValue(X))^2), 15), "\n")
 
 
 # Run microbenchmark
