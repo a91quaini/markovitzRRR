@@ -4,12 +4,7 @@
 #define MARKOVITZRRRSOLVER_H
 
 #include <RcppArmadillo.h>
-
-//// Definition of constants used by the solver
-const char default_choice_type = 'd';
-const double default_step_size_constant = 1.e-3;
-const unsigned int default_max_iter = 10000;
-const double default_tolerance = -1.;
+#include "constants.h"
 
 //// Definition of MarkovitzRRRSolver
 
@@ -40,18 +35,19 @@ private:
   // penalty parameter
   double lambda;
   // objective function
-  arma::vec objective;
+  const char penalty_type;
   const std::function<double(const arma::mat&)> ComputeObjective;
+  arma::vec objective;
+  double objective_best;
   // subgradient
-  arma::mat subgradient;
-  // function computing the subgradient
   const std::function<void(void)> ComputeSubgradient;
+  arma::mat subgradient;
   // useful for subgradient
   arma::mat U, V;
   arma::vec sv;
   // step size
+  const char step_size_type;
   const double step_size_constant;
-  // function computing the step size
   const std::function<double(void)> ComputeStepSize;
   // iterations
   const unsigned int max_iter;
@@ -68,31 +64,26 @@ public:
     const arma::mat& R,
     const arma::mat& X0,
     const double lambda,
-    const char objective_type = default_choice_type,
     const char penalty_type = default_choice_type,
     const char step_size_type = default_choice_type,
     const double step_size_constant = default_step_size_constant,
     const unsigned int max_iter = default_max_iter,
-    const double tolerance = default_tolerance
+    const double tolerance = minus_one
   );
 
   // Solve the optimization problem using the projected subgradient path
   void Solve();
 
   // Compute the projected subgradient step based on the current iteration
-  void ComputeProjectedSubgradientStep(const unsigned int iter);
+  void ComputeProjectedSubgradientStep();
 
   // compute the objective function at a given X
-  std::function<double(const arma::mat&)> SetObjectiveFunction(
-    const char objective_type
-  ) const;
+  std::function<double(const arma::mat&)> SetObjectiveFunction() const;
   double ComputeDefaultObjective(const arma::mat& X) const;
   double ComputeAlternativeObjective(const arma::mat& X) const;
 
   // compute `step_size` at the current iteration
-  std::function<double(void)> SetStepSizeFunction(
-    const char step_size_type
-  ) const;
+  std::function<double(void)> SetStepSizeFunction() const;
   double ComputeStepSizeConstant() const;
   double ComputeStepSizeConstantStepLength() const;
   double ComputeStepSizeNotSummableVanishing() const;
@@ -100,13 +91,13 @@ public:
   double ComputeStepSizeModifiedPolyak() const;
 
   // compute `subgradient` at the current iteration
-  std::function<void(void)> SetSubgradientFunction(const char penalty_type);
+  std::function<void(void)> SetSubgradientFunction();
   void ComputeSubgradientForLargeN();
   void ComputeSubgradientForSmallN();
   void ComputeSubgradientAlternative();
 
   // compute the optimal portfolio weights
-  arma::rowvec ComputeOptimalPortfolioWeights();
+  void ComputeOptimalPortfolioWeights();
 
   // set the penalty parameter lambda
   void SetLambda(double lambda);
@@ -119,6 +110,9 @@ public:
 
   // get the solver solution
   const arma::mat& GetSolution() const;
+
+  // get the optimal portfolio weights
+  const arma::rowvec& GetWeights() const;
 
 };
 

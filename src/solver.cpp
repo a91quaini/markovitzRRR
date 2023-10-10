@@ -9,7 +9,6 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   const arma::mat& R,
   const arma::mat& X0,
   const double lambda,
-  const char objective_type,
   const char penalty_type,
   const char step_size_type,
   const double step_size_constant,
@@ -23,22 +22,26 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   X1(X0),
   Xbest(X0),
   lambda(lambda),
+  penalty_type(penalty_type),
+  ComputeObjective(SetObjectiveFunction()),
   objective(arma::vec(max_iter)),
-  ComputeObjective(SetObjectiveFunction(objective_type)),
-  ComputeSubgradient(SetSubgradientFunction(penalty_type)),
+  ComputeSubgradient(SetSubgradientFunction()),
+  step_size_type(step_size_type),
   step_size_constant(step_size_constant),
-  ComputeStepSize(SetStepSizeFunction(step_size_type)),
+  ComputeStepSize(SetStepSizeFunction()),
   max_iter(max_iter),
-  iter(0),
+  iter(1),
   tolerance(tolerance)
 {
 
   // compute the objective function at `X0`
-  objective(iter) = ComputeObjective(X0);
+  objective(0) = ComputeObjective(X0);
+  // set the best objective value to `objective(0)`
+  objective_best = objective(0);
 
   // if N is small compared to T, the `ComputeSubgradient` function assumes
   // that the svd of R is computed and stored in U, sv and V
-  if ((double)N/T < .9) {
+  if ((double)N/T < .7) {
 
     // compute svd(R) once
     arma::svd(U, sv, V, R);
@@ -55,25 +58,27 @@ void MarkovitzRRRSolver::Solve() {
   // main loop with solution check
   if (tolerance > 0) {
 
-    while(++iter < max_iter) {
+    // main loop
+    do {
 
       // Compute the projected subgradient step based on the current iteration
-      ComputeProjectedSubgradientStep(iter);
-
-      // if ||X1 - X0||_F^2 < tolerance quit loop
-      if (arma::accu(arma::square(X1 - X0)) < tolerance) {
-
-        // remove elements
-        objective = objective.head(iter);
-        // objective.shed_rows(iter + 1, max_iter);
-        break;
-
-      }
+      ComputeProjectedSubgradientStep();
 
       // update `X0` to `X1`
       X0 = X1;
 
-    }
+    } while(
+        // and iter < max_iter - 1
+        (++iter < max_iter - 1) &&
+        // while ||X1 - X0||_F^2 > tolerance
+        (arma::accu(arma::square(X1 - X0)) > tolerance)
+    );
+
+    /// not to waste the last new `X0`, finalize with one more step
+    ComputeProjectedSubgradientStep();
+
+    // remove elements in excess in `objective`
+    objective = objective.head(iter + 1);
 
   // main loop without solution check
   } else {
@@ -82,7 +87,7 @@ void MarkovitzRRRSolver::Solve() {
     while(++iter < max_iter - 1) {
 
       // Compute the projected subgradient step based on the current iteration
-      ComputeProjectedSubgradientStep(iter);
+      ComputeProjectedSubgradientStep();
 
       // update `X0` to `X1`
       X0 = X1;
@@ -90,14 +95,14 @@ void MarkovitzRRRSolver::Solve() {
     }
 
     // not to waste the last new `X0`, finalize with one more step
-    ComputeProjectedSubgradientStep(iter);
+    ComputeProjectedSubgradientStep();
 
   }
 
 }
 
 // Compute one projected subgradient step based on the current iteration
-void MarkovitzRRRSolver::ComputeProjectedSubgradientStep(const unsigned int iter) {
+void MarkovitzRRRSolver::ComputeProjectedSubgradientStep() {
 
   // compute the subgradient, stored in `this->subgradient`
   ComputeSubgradient();
@@ -112,8 +117,13 @@ void MarkovitzRRRSolver::ComputeProjectedSubgradientStep(const unsigned int iter
   // store objective function at `X1`
   objective(iter) = ComputeObjective(X1);
 
-  // replace `Xbest` with `X1` if `f(X1) <= f(Xbest)`
-  if (objective(iter) <= ComputeObjective(Xbest)) Xbest = X1;
+  // replace `Xbest` with `X1` if `f(X1) <= f(Xbest)` and update `objective_best`
+  if (objective(iter) <= objective_best) {
+
+    objective_best = objective(iter);
+    Xbest = X1;
+
+  }
 
 };
 
@@ -235,7 +245,7 @@ void MarkovitzRRRSolver::ComputeSubgradientAlternative() {
 }
 
 // compute the optimal portfolio weights
-arma::rowvec MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
+void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
 
   // compute the marginal variances of the residuals between returns R and
   // hedging returns R * X
@@ -244,27 +254,26 @@ arma::rowvec MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
   // compute the unscaled optimal weights: Sigma^(-1)'1 where Sigma^(-1),
   // the inverse variance covariance matrix of returns, is computed via
   // the solution X and the marginal variances of the residuals
-  const arma::rowvec weights = arma::sum(
-    arma::diagmat(residuals_variance) * (arma::eye(N, N) - Xbest), 0
+  weights = arma::sum(
+    arma::diagmat(1. / residuals_variance) * (arma::eye(N, N) - Xbest), 0
   );
 
-  return weights / arma::accu(weights);
+  // project weights into the unit simplex
+  weights /= arma::accu(weights);
 
-}
+};
 
 ///////////////
 /// setters ///
 
-// set `ComputeObjective` according to `objective_type`:
+// set `ComputeObjective` according to `penalty_type`:
 // `'d'` for default, i.e., objective given by
 // `.5||R - RX||_F^2 + lambda * ||RX||_*`;
 // `'a'` for alternative, i.e., objective given by
 // `.5||R - RX||_F^2 + lambda * ||X||_*`. Default is `'d'`.
-std::function<double(const arma::mat&)> MarkovitzRRRSolver::SetObjectiveFunction(
-  const char objective_type
-) const {
+std::function<double(const arma::mat&)> MarkovitzRRRSolver::SetObjectiveFunction() const {
 
-  switch (objective_type) {
+  switch (penalty_type) {
 
   case 'd':
     // return [this](const arma::mat& X) -> double { return ComputeDefaultObjective(X); };
@@ -284,18 +293,16 @@ std::function<double(const arma::mat&)> MarkovitzRRRSolver::SetObjectiveFunction
 
   }
 
-}
+};
 
 // set `ComputeSubgradient` according to `penalty_type`:
-// if `penalty_type` = 'a' for alternative, then the subgradient accounts for
-// the penalty `lambda ||X||_*`. Otherwise, as default, it accounts for the
-// penalty `lambda ||R * X||_*`, for which there are two implementations,
+// `'a'` for alternative, i.e., the penalty is given by `lambda ||X||_*`.
+// Otherwise, as default, the penalty is given by `lambda ||R * X||_*`,
+// for which there are two implementations,
 // one computing each time `svd(R * X)=USV'`, and the other one computing once
 // `svd(R)=USV'` and each time computing `qr(X'V)=QA` and `svd(AS)`.
 // the latter option is desirable when T>>N.
-std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
-  const char penalty_type
-) {
+std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction() {
 
   switch (penalty_type) {
 
@@ -309,7 +316,7 @@ std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
 
   }
 
-}
+};
 
 // set function `ComputeStepSize` according to `step_size_type`:
 // if `step_size_type` = 'd' for default, the function computes a not summable
@@ -326,9 +333,7 @@ std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
 // if `step_size_type` = 'c' for constant, then the returned function computes a
 // constant step size: `step_size = step_size_constant`.
 // default is `step_size_type` = 'd'.
-std::function<double(void)> MarkovitzRRRSolver::SetStepSizeFunction(
-    const char step_size_type
-) const {
+std::function<double(void)> MarkovitzRRRSolver::SetStepSizeFunction() const {
 
   switch (step_size_type) {
 
@@ -375,4 +380,9 @@ const arma::vec& MarkovitzRRRSolver::GetObjective() const {
 // get solution
 const arma::mat& MarkovitzRRRSolver::GetSolution() const {
   return Xbest;
+};
+
+// get the optimal portfolio weights
+const arma::rowvec& MarkovitzRRRSolver::GetWeights() const {
+  return weights;
 };
