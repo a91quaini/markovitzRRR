@@ -11,7 +11,7 @@ MarkovitzRRR(
   initial_solution = matrix(0, 0, 0),
   penalty_type = "d",
   step_size_type = "d",
-  step_size_constant = 0.001,
+  step_size_constant = -1,
   max_iter = 10000,
   tolerance = -1,
   check_arguments = TRUE
@@ -42,14 +42,16 @@ penalty given by \verb{||X||_*}. Default is \code{'d'}.}
 \code{'c'} for constant step size: \code{step_size_constant}.
 Default is \code{'d'}.}
 
-\item{step_size_constant}{numeric constant determining the step size. Default
-is \code{1.e-3}}
+\item{step_size_constant}{numeric constant determining the step size.
+If it is negative, then it is internally set to
+\code{2./(min(sv(R))^2 + max(sv(R))^2)}, where \code{sv} denotes singular values.
+Default is \code{-1}}
 
 \item{max_iter}{numeric solver parameter indicating the maximum number of
 iterations. Default is \code{10000}.}
 
 \item{tolerance}{numeric tolerance check for \verb{||X_k+1 - X_k||_F^2 / N^2}.
-If \code{tolerance <= 0}, no check is performed. Default is \code{-1.}, for no .}
+If \code{tolerance <= 0}, no check is performed. Default is \code{-1}.}
 
 \item{check_arguments}{boolean \code{TRUE} if you want to check function arguments;
 \code{FALSE} otherwise. Default is \code{TRUE}.}
@@ -58,7 +60,9 @@ If \code{tolerance <= 0}, no check is performed. Default is \code{-1.}, for no .
 markovitzRRR objective function values at each iteration.}
 }
 \value{
-a list containing
+a list containing: the optimal solution in \verb{$solution}; the optimal
+value in \verb{$objective}; the optimal portfolio weights in \verb{$weights}; the
+number of iterations in \verb{$iterations}.
 }
 \description{
 Computes Markovitz RRR

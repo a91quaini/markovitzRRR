@@ -10,10 +10,10 @@
 Rcpp::List MarkovitzRRRCpp(
   const arma::mat& R,
   arma::mat& X0,
-  const double lambda = default_step_size_constant,
+  const double lambda,
   const char penalty_type = default_choice_type,
   const char step_size_type = default_choice_type,
-  const double step_size_constant = default_step_size_constant,
+  const double step_size_constant = minus_one,
   const unsigned int max_iter = default_max_iter,
   const double tolerance = minus_one
 );

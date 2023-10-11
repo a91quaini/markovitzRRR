@@ -67,7 +67,7 @@ public:
     const double lambda,
     const char penalty_type = default_choice_type,
     const char step_size_type = default_choice_type,
-    const double step_size_constant = default_step_size_constant,
+    const double step_size_constant = minus_one,
     const unsigned int max_iter = default_max_iter,
     const double tolerance = minus_one
   );
@@ -79,12 +79,10 @@ public:
   void ComputeProjectedSubgradientStep();
 
   // compute the objective function at a given X
-  std::function<double(void)> SetObjectiveFunction() const;
   double ComputeDefaultObjective() const;
   double ComputeAlternativeObjective() const;
 
   // compute `step_size` at the current iteration
-  std::function<double(void)> SetStepSizeFunction() const;
   double ComputeStepSizeConstant() const;
   double ComputeStepSizeConstantStepLength() const;
   double ComputeStepSizeNotSummableVanishing() const;
@@ -92,7 +90,6 @@ public:
   double ComputeStepSizeModifiedPolyak() const;
 
   // compute `subgradient` at the current iteration
-  std::function<void(void)> SetSubgradientFunction();
   void ComputeSubgradientForLargeN();
   void ComputeSubgradientForSmallN();
   void ComputeSubgradientAlternative();
@@ -100,11 +97,23 @@ public:
   // compute the optimal portfolio weights
   void ComputeOptimalPortfolioWeights();
 
+  //// setters
+
+  // set function computing the `step_size` at the current iteration
+  std::function<double(void)> SetObjectiveFunction() const;
+  std::function<double(void)> SetStepSizeFunction() const;
+  std::function<void(void)> SetSubgradientFunction();
+
+  // set `step_size_constant`
+  double SetStepSizeConstant(const double step_size_constant) const;
+
   // set the penalty parameter lambda
   void SetLambda(double lambda);
 
   // set the X0 matrix to an hollow matrix with 1/N in the off-diagonal
   void SetX0ToHollow1OverN();
+
+  //// getters
 
   // get the vector of objective function evaluation at each iteration
   const arma::rowvec& GetObjective() const;

@@ -26,16 +26,20 @@
 #' `(step_size_constant + objective_iter - min{objective_k | k=0,...,iter}) / ||subgradient)||_F`.
 #' `'c'` for constant step size: `step_size_constant`.
 #' Default is `'d'`.
-#' @param step_size_constant numeric constant determining the step size. Default
-#' is `1.e-3`
+#' @param step_size_constant numeric constant determining the step size.
+#' If it is negative, then it is internally set to
+#' `2./(min(sv(R))^2 + max(sv(R))^2)`, where `sv` denotes singular values.
+#' Default is `-1`
 #' @param max_iter numeric solver parameter indicating the maximum number of
 #' iterations. Default is `10000`.
 #' @param tolerance numeric tolerance check for `||X_k+1 - X_k||_F^2 / N^2`.
-#' If `tolerance <= 0`, no check is performed. Default is `-1.`, for no .
+#' If `tolerance <= 0`, no check is performed. Default is `-1`.
 #' @param check_arguments boolean `TRUE` if you want to check function arguments;
 #' `FALSE` otherwise. Default is `TRUE`.
 #'
-#' @return a list containing
+#' @return a list containing: the optimal solution in `$solution`; the optimal
+#' value in `$objective`; the optimal portfolio weights in `$weights`; the
+#' number of iterations in `$iterations`.
 #'
 #' @export
 MarkovitzRRR = function(
@@ -44,7 +48,7 @@ MarkovitzRRR = function(
   initial_solution = matrix(0, 0, 0),
   penalty_type = 'd',
   step_size_type = 'd',
-  step_size_constant = 1.e-3,
+  step_size_constant = -1.,
   max_iter = 10000,
   tolerance = -1.,
   check_arguments = TRUE

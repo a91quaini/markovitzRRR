@@ -10,24 +10,37 @@
 set.seed(2)
 
 # Simulate asset returns
-n_assets = 100
-n_obs = 50
+n_assets <- 30
+n_obs <- 100
 mean_returns = rep(0, n_assets)
 variance_returns = diag(1., n_assets)
 returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
 
+# sv_returns = svd(returns)$d
+# const = 2. / (min(sv_returns)^2 + max(sv_returns)^2)
+# const = 2. / (max(sv_returns)^2)
+
 # Set penalty parameter lambda
 lambda = 0.05
-tau = 0.5
+tau = 5.5
 
 ## markovitzRRR
 markovitzRRR_function = function() {
+  # return(MarkovitzRRR(
+  #   returns,
+  #   lambda,
+  #   penalty_type = 'd',
+  #   step_size_type = 'd',
+  #   step_size_constant = 0.5e-2,
+  #   max_iter = 10000,
+  #   tolerance = 1e-12
+  # ))
   return(MarkovitzRRR(
     returns,
     lambda,
     penalty_type = 'd',
-    step_size_type = 'd',
-    step_size_constant = 0.5e-2,
+    step_size_type = 'c',
+    step_size_constant = -1.,
     max_iter = 10000,
     tolerance = 1e-12
   ))
@@ -37,7 +50,7 @@ markovitzRRRalt_function = function() {
   return(MarkovitzRRRAlt(
     returns,
     tau,
-    max_iter = 10000,
+    max_iter = 5,
     tolerance = -1.
   ))
 }

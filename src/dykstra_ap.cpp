@@ -88,8 +88,9 @@ void DykstraAP::Solve() {
 
     // main loop
     do {
-
-      // Compute the projection of `B + a` on `A = {RX | ||RX||_* <= tau}`
+      Rcpp::Rcout << "\n";
+      Rcpp::Rcout << "iter = " << iter << "\n";
+      // Compute the projection of `B + a` on `A = {Z | ||Z||_* <= tau}`
       // and update `a`.
       ComputeStepA();
 
@@ -118,12 +119,19 @@ void DykstraAP::ComputeStepA() {
   const double sv_sum = arma::accu(sv);
   // that is: if the sum of `sum(sv) > tau`, then multiply each `sv` by
   // `tau / sum(sv)`
+
+  Rcpp::Rcout << "sum(sv) pre = " << arma::sum(sv) << "\n";
+
   if (sv_sum > tau) {
     sv *= tau / arma::accu(sv);
   }
 
+  Rcpp::Rcout << "sum(sv) post = " << arma::sum(sv) << "\n";
+
   // compute `A` with soft-thresholded singular values
   A = U.head_cols(N) * arma::diagmat(sv) * V.t();
+
+  Rcpp::Rcout << "First row of A = " << A.row(0) << "\n";
 
   // increment a
   // a += B - A;
@@ -165,6 +173,8 @@ void DykstraAP::ComputeStepB() {
 
   // compute `B`
   B = R * X;
+
+  Rcpp::Rcout << "First row of B = " << B.row(0) << "\n";
 
   // update `b`
   // b += A - B;

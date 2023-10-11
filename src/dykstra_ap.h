@@ -72,7 +72,7 @@ public:
   // Solve the optimization problem
   void Solve();
 
-  // Compute the projection of `B + a` on `A = {RX | ||RX||_* <= tau}`
+  // Compute the projection of `B + a` on `A = {Z | ||Z||_* <= tau}`
   // and update `a`.
   void ComputeStepA();
 

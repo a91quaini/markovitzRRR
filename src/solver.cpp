@@ -29,19 +29,21 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   objective(max_iter),
   ComputeSubgradient(SetSubgradientFunction()),
   step_size_type(step_size_type),
-  step_size_constant(step_size_constant),
+  step_size_constant(SetStepSizeConstant(step_size_constant)),
   ComputeStepSize(SetStepSizeFunction()),
   tolerance(tolerance)
 {
 
   // compute the objective function at `X0`
   objective(0) = ComputeObjective();
+
   // set the best objective value to `objective(0)`
   objective_best = objective(0);
 
   // if N is small compared to T, the `ComputeSubgradient` function assumes
   // that the svd of R is computed and stored in U, sv and V
-  if ((double)N/T < .7) {
+  // note: here `default_NT_ratio = .7`
+  if ((double)N/T < default_NT_ratio) {
 
     // compute svd(R) once
     arma::svd(U, sv, V, R);
@@ -348,6 +350,20 @@ std::function<double(void)> MarkovitzRRRSolver::SetStepSizeFunction() const {
     return std::bind(&MarkovitzRRRSolver::ComputeStepSizeConstant, this);
 
   }
+
+};
+
+// set the step size constant to `step_size_constant` if `step_size_constant > 0`
+// otherwise set it to `2./(min(sv(R))^2 + max(sv(R))^2)`, where `sv` denotes
+// singular values
+double MarkovitzRRRSolver::SetStepSizeConstant(
+  const double step_size_constant
+) const {
+
+  if (step_size_constant > 0.) return step_size_constant;
+
+  const arma::vec svR = arma::svd(R);
+  return 2. / (svR(0) * svR(0) + svR(minNT - 1) * svR(minNT - 1));
 
 };
 
