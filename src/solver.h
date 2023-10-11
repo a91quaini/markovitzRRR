@@ -24,6 +24,7 @@ private:
   // returns dimensions
   const unsigned int T;
   const unsigned int N;
+  const unsigned int minNT;
 
   //// solver internal data
   // solutions

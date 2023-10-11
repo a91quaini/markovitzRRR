@@ -30,16 +30,16 @@ private:
   //// solver internal data
   // solution
   arma::mat X;
-  // projection on A and B
-  arma::mat PA;
-  arma::mat PB;
-  // increments on A and B
-  arma::mat IA;
-  arma::mat IB;
+  // projections on A and B
+  arma::mat A;
+  arma::mat B;
+  // increments of projections on A and B
+  arma::mat a;
+  arma::mat b;
   // // store Ri'Ri, where Ri is matrix R without the i-th column
   // const std::vector<arma::mat> RiRi;
   // columns index vector
-  arma::uvec assets_idx;
+  // arma::uvec assets_idx;
   // optimal portfolio weights
   arma::rowvec weights;
   // problem parameters
@@ -72,13 +72,13 @@ public:
   // Solve the optimization problem
   void Solve();
 
-  // Compute the projection of `PB + IA` on A = {RX | ||RX||_* <= tau}
-  // and update `IA`.
-  void StepA();
+  // Compute the projection of `B + a` on `A = {RX | ||RX||_* <= tau}`
+  // and update `a`.
+  void ComputeStepA();
 
-  // Compute the projection of `PA + IB` on `B = {RX | diag(X)=0}`
-  // and update `IB`.
-  void StepB();
+  // Compute the projection of `A + b` on `B = {RX | diag(X)=0}`
+  // and update `b`.
+  void ComputeStepB();
 
   // compute the objective function
   double ComputeObjective() const;

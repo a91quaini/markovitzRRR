@@ -18,6 +18,7 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   R(R),
   T(R.n_rows),
   N(R.n_cols),
+  minNT(std::min(N, T)),
   X(X0),
   Xbest(X0),
   lambda(lambda),
@@ -198,7 +199,7 @@ void MarkovitzRRRSolver::ComputeSubgradientForLargeN() {
   // element in the subgradient of
   // 0.5 ||R - RX||_F^2 + lambda ||R * X||_*
   // with respect to X
-  subgradient = lambda * R.t() * U.cols(0, N-1) * V.t() +
+  subgradient = lambda * R.t() * U.cols(0, minNT-1) * V.cols(0, minNT-1).t() +
     R.t() * (R * X0 - R);
 
 }

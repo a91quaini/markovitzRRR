@@ -16,11 +16,11 @@ DykstraAP::DykstraAP(
   T(R.n_rows),
   N(R.n_cols),
   X(N, N),
-  PB(R),
-  IA(T, N),
-  IB(T, N),
+  B(R),
+  a(T, N),
+  b(T, N),
   // RiRi(SetRiRi()),
-  assets_idx(arma::regspace<arma::uvec>(0, N-1)),
+  // assets_idx(arma::regspace<arma::uvec>(0, N-1)),
   lambda(lambda),
   tau(tau),
   max_iter(max_iter),
@@ -49,35 +49,35 @@ DykstraAP::DykstraAP(
 void DykstraAP::Solve() {
 
   // main loop with solution check
-  if (tolerance > 0) {
+  if (tolerance > 0.) {
 
-    // containers for increments IA and IB
-    arma::mat IA0;
-    arma::mat IB0;
+    // containers for increments a and b
+    arma::mat a0;
+    arma::mat b0;
 
     do {
 
-      // store current increments IA and IB
-      IA0 = IA;
-      IB0 = IB;
+      // store current increments a and b
+      a0 = a;
+      b0 = b;
 
-      // Compute the projection of `PB + IA` on A = {RX | ||RX||_* <= tau}
-      // and update `IA`.
-      StepA();
+      // Compute the projection of `B + a` on `A = {RX | ||RX||_* <= tau}`
+      // and update `a`.
+      ComputeStepA();
 
-      // Compute the projection of `PA + IB` on `B = {RX | diag(X)=0}`
-      // and update `IB`.
-      StepB();
+      // Compute the projection of `A + b` on `B = {RX | diag(X)=0}`
+      // and update `b`.
+      ComputeStepB();
 
       // compute the objective function at `X`
       objective(iter) = ComputeObjective();
 
     } while (
-      // while iter < max_iter - 1
+      // while iter < max_iter
       (++iter < max_iter) &&
-      // and `||IA - IA0||_F^2 + ||IB - IB0||_F^2 < tolerance`, quit loop.
-      (arma::accu(arma::square(IA - IA0)) +
-      arma::accu(arma::square(IB - IB0)) > tolerance)
+      // and `||a - a0||_F^2 + ||b - b0||_F^2 < tolerance`, quit loop.
+      (arma::accu(arma::square(a - a0)) +
+      arma::accu(arma::square(b - b0)) > tolerance)
     );
 
     // remove elements in excess in `objective`
@@ -89,13 +89,13 @@ void DykstraAP::Solve() {
     // main loop
     do {
 
-      // Compute the projection of `PB + IA` on A = {RX | ||RX||_* <= tau}
-      // and update `IA`.
-      StepA();
+      // Compute the projection of `B + a` on `A = {RX | ||RX||_* <= tau}`
+      // and update `a`.
+      ComputeStepA();
 
-      // Compute the projection of `PA + IB` on `B = {RX | diag(X)=0}`
-      // and update `IB`.
-      StepB();
+      // Compute the projection of `A + b` on `B = {RX | diag(X)=0}`
+      // and update `b`.
+      ComputeStepB();
 
       // compute the objective function at `X`
       objective(iter) = ComputeObjective();
@@ -106,32 +106,36 @@ void DykstraAP::Solve() {
 
 }
 
-// Compute the projection of `PB + IA` on A = {RX | ||RX||_* <= tau}
-// and update `IA`.
-void DykstraAP::StepA() {
+// Compute the projection of `B + a` on `A = {RX | ||RX||_* <= tau}`
+// and update `a`.
+void DykstraAP::ComputeStepA() {
 
-  // svd decomposition of `PB + IA`
-  // note: in the first iteration, `PB = R` and `IA = 0`
-  svd(U, sv, V, PB + IA);
+  // svd decomposition of `B + a`
+  // note: in the first iteration, `B = R` and `a = 0`
+  svd(U, sv, V, B + a);
 
-  // project the singular values of `PB + IA` onto the simplex of radius `tau`
-  sv *= tau / arma::accu(sv);
-  sv.clamp(0., arma::datum::inf);
+  // project the singular values of `B + a` onto the simplex of radius `tau`
+  const double sv_sum = arma::accu(sv);
+  // that is: if the sum of `sum(sv) > tau`, then multiply each `sv` by
+  // `tau / sum(sv)`
+  if (sv_sum > tau) {
+    sv *= tau / arma::accu(sv);
+  }
 
-  // compute PA with soft-thresholded singular values
-  PA = U.head_cols(N) * arma::diagmat(sv) * V.t();
+  // compute `A` with soft-thresholded singular values
+  A = U.head_cols(N) * arma::diagmat(sv) * V.t();
 
-  // increment IA
-  // IA += PB - PA;
+  // increment a
+  // a += B - A;
 
 };
 
-// Compute the projection of `PA + IB` on `B = {RX | diag(X)=0}` and update `IB`.
-// to do so: solve N regressions of `Y(i)`, with `Y = PA + IB`, on `R^(-i)`,
+// Compute the projection of `A + b` on `B = {RX | diag(X)=0}` and update `b`.
+// to do so: solve N regressions of `Y(i)`, with `Y = A + b`, on `R^(-i)`,
 // where `Y(i)` is the i-th column of `Y` and `R^(-i)` is `R` without the i-th column,
 // then store appropriately the computed regression coefficients
 // along the non-diagonal elements of `X`.
-void DykstraAP::StepB() {
+void DykstraAP::ComputeStepB() {
 
   for (unsigned int i = 0; i < N; ++i) {
 
@@ -144,7 +148,7 @@ void DykstraAP::StepB() {
     Ri.shed_col(i);
     const arma::vec coeff = arma::solve(
       Ri.t() * Ri, //+ lambda * arma::eye(N-1, N-1),
-      Ri.t() * (PA.col(i) + IB.col(i)),
+      Ri.t() * (A.col(i) + b.col(i)),
       arma::solve_opts::likely_sympd
     );
 
@@ -159,11 +163,11 @@ void DykstraAP::StepB() {
 
   }
 
-  // compute PB
-  PB = R * X;
+  // compute `B`
+  B = R * X;
 
-  // update `IB`
-  // IB += PA - PB;
+  // update `b`
+  // b += A - B;
 
 };
 

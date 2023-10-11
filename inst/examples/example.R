@@ -10,8 +10,8 @@
 set.seed(2)
 
 # Simulate asset returns
-n_assets = 20
-n_obs = 100
+n_assets = 100
+n_obs = 50
 mean_returns = rep(0, n_assets)
 variance_returns = diag(1., n_assets)
 returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
@@ -55,7 +55,7 @@ problem = CVXR::Problem(CVXR::Minimize(cost + penalty), constraint)
 
 # Define the CVXR function call as a function
 cvxr_function = function() {
-  return(CVXR::solve(problem, reltol = 1e-8, abstol = 1e-12, num_iter = 10000))
+  return(CVXR::solve(problem, verbose = TRUE, reltol = 1e-8, abstol = 1e-12, num_iter = 10000))
 }
 
 # # Define the CVXR function call as a function
