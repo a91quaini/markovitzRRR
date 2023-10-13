@@ -31,7 +31,11 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   step_size_type(step_size_type),
   step_size_constant(SetStepSizeConstant(step_size_constant)),
   ComputeStepSize(SetStepSizeFunction()),
-  tolerance(tolerance)
+  tolerance(tolerance),
+  // ancilliary
+  X_norm(max_iter),
+  Sigma_inv_norm(max_iter),
+  Weights(N, max_iter)
 {
 
   // compute the objective function at `X0`
@@ -90,6 +94,26 @@ void MarkovitzRRRSolver::Solve() {
 
       // Compute the projected subgradient step based on the current iteration
       ComputeProjectedSubgradientStep();
+
+      // ancilliary
+      X_norm(iter) = arma::norm(X, "fro");
+
+      // compute the inverse marginal variances of the residuals between returns
+      // R and hedging returns R * X
+      const arma::mat residuals_variance_inv = arma::diagmat(
+        1. / arma::var(R - R * Xbest, 0, 0)
+      );
+
+      ////
+      const arma::mat Sigma_inv = residuals_variance_inv -
+        residuals_variance_inv * Xbest;
+      Sigma_inv_norm(iter) = arma::norm(Sigma_inv, "fro");
+
+      arma::vec wweights = arma::sum(Sigma_inv, 0).t();
+
+      // project weights into the unit simplex
+      wweights /= arma::accu(wweights);
+      Weights.col(iter) = wweights;
 
     } while(++iter < max_iter);
 
@@ -245,8 +269,9 @@ void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
 
   // compute the inverse marginal variances of the residuals between returns
   // R and hedging returns R * X
-  const arma::mat residuals_variance_inv =
-    1. / arma::diagmat(arma::var(R - R * Xbest, 0, 0));
+  const arma::mat residuals_variance_inv = arma::diagmat(
+    1. / arma::var(R - R * Xbest, 0, 0)
+  );
 
   // compute the unscaled optimal weights: Sigma^(-1)'1 where Sigma^(-1),
   // the inverse variance covariance matrix of returns, is computed via
@@ -401,4 +426,21 @@ const arma::rowvec& MarkovitzRRRSolver::GetWeights() const {
 // get number of iterations
 const unsigned int MarkovitzRRRSolver::GetIterations() const {
   return iter;
+};
+
+// ancilliary
+
+// get
+const arma::vec& MarkovitzRRRSolver::GetX_norm() const {
+  return X_norm;
+};
+
+// get
+const arma::vec& MarkovitzRRRSolver::GetSigma_inv_norm() const {
+  return Sigma_inv_norm;
+};
+
+// get
+const arma::mat& MarkovitzRRRSolver::GetWWeights() const {
+  return Weights;
 };

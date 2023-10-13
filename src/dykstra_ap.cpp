@@ -90,16 +90,21 @@ void DykstraAP::Solve() {
     do {
       Rcpp::Rcout << "\n";
       Rcpp::Rcout << "iter = " << iter << "\n";
+      Rcpp::Rcout << "\n";
+      Rcpp::Rcout << "Step A\n";
       // Compute the projection of `B + a` on `A = {Z | ||Z||_* <= tau}`
       // and update `a`.
       ComputeStepA();
 
+      Rcpp::Rcout << "Step A\n";
       // Compute the projection of `A + b` on `B = {RX | diag(X)=0}`
       // and update `b`.
       ComputeStepB();
 
       // compute the objective function at `X`
       objective(iter) = ComputeObjective();
+      Rcpp::Rcout << "objective = " << objective(iter) << "\n";
+
 
     } while (++iter < max_iter);
 
@@ -111,14 +116,17 @@ void DykstraAP::Solve() {
 // and update `a`.
 void DykstraAP::ComputeStepA() {
 
-  // svd decomposition of `B + a`
-  // note: in the first iteration, `B = R` and `a = 0`
-  svd(U, sv, V, B + a);
+  // first update `a`: `a += B`
+  a += B;
 
-  // project the singular values of `B + a` onto the simplex of radius `tau`
-  const double sv_sum = arma::accu(sv);
+  // svd decomposition of `a`
+  // note: in the first iteration, `a = R`
+  svd(U, sv, V, a);
+
+  // project the singular values of `a` onto the simplex of radius `tau`
   // that is: if the sum of `sum(sv) > tau`, then multiply each `sv` by
   // `tau / sum(sv)`
+  const double sv_sum = arma::accu(sv);
 
   Rcpp::Rcout << "sum(sv) pre = " << arma::sum(sv) << "\n";
 
@@ -133,8 +141,9 @@ void DykstraAP::ComputeStepA() {
 
   Rcpp::Rcout << "First row of A = " << A.row(0) << "\n";
 
-  // increment a
-  // a += B - A;
+  // second update of `a`: `a -= A`
+  a -= A;
+  Rcpp::Rcout << "First row of a = " << a.row(0) << "\n";
 
 };
 
@@ -147,6 +156,9 @@ void DykstraAP::ComputeStepB() {
 
   for (unsigned int i = 0; i < N; ++i) {
 
+    // first update of `b`: `b += A`
+    b += A;
+
     // const arma::uvec columns = join_vert(
     //   assets_idx.head(i),
     //   assets_idx.tail(N-1-i)
@@ -156,7 +168,7 @@ void DykstraAP::ComputeStepB() {
     Ri.shed_col(i);
     const arma::vec coeff = arma::solve(
       Ri.t() * Ri, //+ lambda * arma::eye(N-1, N-1),
-      Ri.t() * (A.col(i) + b.col(i)),
+      Ri.t() * b.col(i),
       arma::solve_opts::likely_sympd
     );
 
@@ -176,8 +188,11 @@ void DykstraAP::ComputeStepB() {
 
   Rcpp::Rcout << "First row of B = " << B.row(0) << "\n";
 
-  // update `b`
-  // b += A - B;
+  // second update of `b`: `b -+ B`
+  b -= B;
+
+  Rcpp::Rcout << "First row of b = " << b.row(0) << "\n";
+
 
 };
 

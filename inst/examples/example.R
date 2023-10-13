@@ -10,8 +10,8 @@
 set.seed(2)
 
 # Simulate asset returns
-n_assets <- 30
-n_obs <- 100
+n_assets <- 3
+n_obs <- 30
 mean_returns = rep(0, n_assets)
 variance_returns = diag(1., n_assets)
 returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
@@ -41,8 +41,8 @@ markovitzRRR_function = function() {
     penalty_type = 'd',
     step_size_type = 'c',
     step_size_constant = -1.,
-    max_iter = 10000,
-    tolerance = 1e-12
+    max_iter = 100,
+    tolerance = -1e-12
   ))
 }
 
@@ -50,7 +50,7 @@ markovitzRRRalt_function = function() {
   return(MarkovitzRRRAlt(
     returns,
     tau,
-    max_iter = 5,
+    max_iter = 100,
     tolerance = -1.
   ))
 }
@@ -61,10 +61,10 @@ cost = 0.5 * CVXR::sum_squares(returns - returns %*% X)
 penalty = lambda * CVXR::norm_nuc(returns %*% X)
 constraint = list(CVXR::diag(X) == 0)
 problem = CVXR::Problem(CVXR::Minimize(cost + penalty), constraint)
-# problem_constr = CVXR::Problem(
-#   CVXR::Minimize(cost),
-#   list(CVXR::diag(X) == 0, CVXR::norm_nuc(returns %*% X) <= tau)
-# )
+problem_constr = CVXR::Problem(
+  CVXR::Minimize(cost),
+  list(CVXR::diag(X) == 0, CVXR::norm_nuc(returns %*% X) <= tau)
+)
 
 # Define the CVXR function call as a function
 cvxr_function = function() {
@@ -72,9 +72,9 @@ cvxr_function = function() {
 }
 
 # # Define the CVXR function call as a function
-# cvxr_constr_function = function() {
-#   return(CVXR::solve(problem_constr, verbose=TRUE, reltol = 1e-8, abstol = 1e-12, num_iter = 10000))
-# }
+cvxr_constr_function = function() {
+  return(CVXR::solve(problem_constr, verbose=TRUE, reltol = 1e-8, abstol = 1e-12, num_iter = 10000))
+}
 
 
 # check solutions

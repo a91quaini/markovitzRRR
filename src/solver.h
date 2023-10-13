@@ -55,6 +55,10 @@ private:
   const std::function<double(void)> ComputeStepSize;
   // tolerance
   const double tolerance;
+  // ancilliary
+  arma::vec X_norm;
+  arma::vec Sigma_inv_norm;
+  arma::mat Weights;
 
   // accessible members
 public:
@@ -126,6 +130,15 @@ public:
 
   // get number of iterations
   const unsigned int GetIterations() const;
+
+  // get
+  const arma::vec& GetX_norm() const;
+
+  // get
+  const arma::vec& GetSigma_inv_norm() const;
+
+  // get
+  const arma::mat& GetWWeights() const;
 
 };
 

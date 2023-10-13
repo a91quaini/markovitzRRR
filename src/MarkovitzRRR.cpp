@@ -45,7 +45,10 @@ Rcpp::List MarkovitzRRRCpp(
     Rcpp::Named("solution") = solver.GetSolution(),
     Rcpp::Named("objective") = solver.GetObjective(),
     Rcpp::Named("weights") = solver.GetWeights(),
-    Rcpp::Named("iterations") = solver.GetIterations()
+    Rcpp::Named("iterations") = solver.GetIterations(),
+    Rcpp::Named("X_norm") = solver.GetX_norm(),
+    Rcpp::Named("Sigma_inv_norm") = solver.GetSigma_inv_norm(),
+    Rcpp::Named("Weights") = solver.GetWWeights()
   );
 
 }
