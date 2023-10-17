@@ -10,34 +10,28 @@
 set.seed(2)
 
 # Simulate asset returns
-n_assets <- 3
-n_obs <- 30
+n_assets <- 20
+n_obs <- 5
 mean_returns = rep(0, n_assets)
 variance_returns = diag(1., n_assets)
 returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
+returns = apply(returns, 2, function(x) x - mean(x))
 
 # sv_returns = svd(returns)$d
 # const = 2. / (min(sv_returns)^2 + max(sv_returns)^2)
 # const = 2. / (max(sv_returns)^2)
 
 # Set penalty parameter lambda
-lambda = 0.05
-tau = 5.5
+lambda1 = 0.05
+lambda2 = 0.
+tau = .5
 
 ## markovitzRRR
 markovitzRRR_function = function() {
-  # return(MarkovitzRRR(
-  #   returns,
-  #   lambda,
-  #   penalty_type = 'd',
-  #   step_size_type = 'd',
-  #   step_size_constant = 0.5e-2,
-  #   max_iter = 10000,
-  #   tolerance = 1e-12
-  # ))
   return(MarkovitzRRR(
     returns,
-    lambda,
+    lambda1=0.1,
+    lambda2=0.,
     penalty_type = 'd',
     step_size_type = 'c',
     step_size_constant = -1.,
@@ -50,7 +44,7 @@ markovitzRRRalt_function = function() {
   return(MarkovitzRRRAlt(
     returns,
     tau,
-    max_iter = 100,
+    max_iter = 200,
     tolerance = -1.
   ))
 }
@@ -81,7 +75,7 @@ cvxr_constr_function = function() {
 markovitzRRR_solution = markovitzRRR_function()
 markovitzRRRalt_solution = markovitzRRRalt_function()
 cvxr_solution = cvxr_function()
-# cvxr_constr_solution = cvxr_constr_function()
+cvxr_constr_solution = cvxr_constr_function()
 # plot(1:length(markovitzRRRalt_solution$objective), markovitzRRRalt_solution$objective)
 # cvxr_constr_solution$value
 PlotMarkovitzRRRObjective(markovitzRRR_solution)

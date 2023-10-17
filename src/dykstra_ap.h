@@ -4,7 +4,6 @@
 #define DYKSTRAAP_H
 
 #include <RcppArmadillo.h>
-#include "constants.h"
 
 //// Dykstra's Alternating Projection solver
 
@@ -26,6 +25,7 @@ private:
   // returns dimensions
   const unsigned int T;
   const unsigned int N;
+  const unsigned int minNT;
 
   //// solver internal data
   // solution
@@ -64,9 +64,9 @@ public:
   explicit DykstraAP(
     const arma::mat& R,
     const double tau,
-    const double lambda = minus_one,
-    const unsigned int max_iter = default_max_iter,
-    const double tolerance = minus_one
+    const double lambda = 0.,
+    const unsigned int max_iter = 'd',
+    const double tolerance = -1.
   );
 
   // Solve the optimization problem

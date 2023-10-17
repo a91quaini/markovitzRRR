@@ -5,12 +5,14 @@ test_that("Test MarkovitzRRR", {
   returns = markovitzRRR::returns[1:20, 2:(n_assets + 1)]
   max_iter = 5
 
-  lambda = 0.2
+  lambda1 = 0.2
+  lambda2 = 0.2
 
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       max_iter = max_iter
     )
   )
@@ -18,7 +20,8 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       max_iter = 5
     )
   )
@@ -26,7 +29,8 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       penalty_type = 'a',
       max_iter = max_iter
     )
@@ -35,7 +39,8 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       step_size_type = 'c',
       max_iter = max_iter
     )
@@ -44,7 +49,8 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       step_size_type = 'p',
       max_iter = max_iter
     )
@@ -62,7 +68,8 @@ test_that("Test MarkovitzRRR", {
   expect_length(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       max_iter = max_iter
     )$solution,
     n_assets * n_assets
@@ -71,21 +78,30 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns = "s",
-      lambda
+      lambda1,
+      lambda2,
     )
   )
 
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda = -0.3
+      lambda1 = -0.3
     )
   )
 
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda2 = -0.3
+    )
+  )
+
+  expect_error(
+    MarkovitzRRR(
+      returns,
+      lambda1,
+      lambda2,
       initial_solution = "c"
     )
   )
@@ -93,14 +109,24 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda = "s"
+      lambda1 = "s",
+      lambda2
     )
   )
 
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2 = "s"
+    )
+  )
+
+  expect_error(
+    MarkovitzRRR(
+      returns,
+      lambda1,
+      lambda2,
       objective_type = c(2, 3)
     )
   )
@@ -108,7 +134,8 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       penalty_type = c(2, 3)
     )
   )
@@ -116,7 +143,8 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       step_size_type = c(2, 3)
     )
   )
@@ -124,7 +152,8 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       step_size_constant = "s"
     )
   )
@@ -132,7 +161,8 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       max_iter = "s"
     )
   )
@@ -143,7 +173,8 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       max_iter = max_iter
     )
   )
@@ -151,7 +182,8 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda,
+      lambda1,
+      lambda2,
       tolerance = "s"
     )
   )

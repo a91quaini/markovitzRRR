@@ -4,15 +4,14 @@
 #define MARKOVITZRRRSOLVER_H
 
 #include <RcppArmadillo.h>
-#include "constants.h"
 
 //// Definition of MarkovitzRRRSolver
 
 class MarkovitzRRRSolver {
   // optimization solver for following optimization problem over R^(NxN)
-  // minimize_X {0.5 ||R - RX||_F^2 + lambda ||RX||_* | diag(X) = 0}
+  // minimize_X {0.5 ||R - RX||_F^2 + lambda1 ||RX||_* + lambda2/2 ||X||_F^2 | diag(X) = 0}
   // or the alternative
-  // minimize_X {0.5 ||R - RX||_F^2 + lambda ||X||_* | diag(X) = 0},
+  // minimize_X {0.5 ||R - RX||_F^2 + lambda1 ||X||_* + lambda2/2 ||X||_F^2 | diag(X) = 0},
   // where ||.||_F denotes the Frobenious norm and ||.||_* the nuclear norm
 
   // members directly accessible only inside the class
@@ -34,12 +33,12 @@ private:
   // optimal portfolio weights
   arma::rowvec weights;
   // penalty parameter
-  double lambda;
+  const double lambda1;
+  const double lambda2;
   // iterations
   const unsigned int max_iter;
   unsigned int iter;
   // objective function
-  const char penalty_type;
   const std::function<double()> ComputeObjective;
   arma::rowvec objective;
   double objective_best;
@@ -50,7 +49,6 @@ private:
   arma::mat U, V;
   arma::vec sv;
   // step size
-  const char step_size_type;
   const double step_size_constant;
   const std::function<double(void)> ComputeStepSize;
   // tolerance
@@ -68,51 +66,80 @@ public:
   explicit MarkovitzRRRSolver(
     const arma::mat& R,
     const arma::mat& X0,
-    const double lambda,
-    const char penalty_type = default_choice_type,
-    const char step_size_type = default_choice_type,
-    const double step_size_constant = minus_one,
-    const unsigned int max_iter = default_max_iter,
-    const double tolerance = minus_one
+    const double lambda1 = 0.,
+    const double lambda2 = 0.,
+    const char penalty_type = 'd',
+    const char step_size_type = 'd',
+    const double step_size_constant = -1.,
+    const unsigned int max_iter = 10000,
+    const double tolerance = -1.
   );
 
   // Solve the optimization problem using the projected subgradient path
   void Solve();
 
+  // Solve the unpenalized Markovitz optimization problem
+  void SolveUnpenalizedMarkovitz();
+
   // Compute the projected subgradient step based on the current iteration
   void ComputeProjectedSubgradientStep();
 
-  // compute the objective function at a given X
-  double ComputeDefaultObjective() const;
-  double ComputeAlternativeObjective() const;
+  // compute the objective function at a given `X`
+  // depending on the values of `penalty_type`, `lambda1` and `lambda2`
+  double ComputeMainObjectiveRidge() const;
+  double ComputeMainObjectiveNuclear() const;
+  double ComputeMainObjectiveNuclearSmallN() const;
+  double ComputeMainObjectiveNuclearRidge() const;
+  double ComputeMainObjectiveNuclearRidgeSmallN() const;
+  double ComputeMainObjectiveAlternativeNuclear() const;
+  double ComputeMainObjectiveAlternativeNuclearRidge() const;
 
   // compute `step_size` at the current iteration
   double ComputeStepSizeConstant() const;
-  double ComputeStepSizeConstantStepLength() const;
   double ComputeStepSizeNotSummableVanishing() const;
   double ComputeStepSizeSquareSummableNotSummable() const;
+  double ComputeStepSizeConstantStepLength() const;
   double ComputeStepSizeModifiedPolyak() const;
 
-  // compute `subgradient` at the current iteration
-  void ComputeSubgradientForLargeN();
-  void ComputeSubgradientForSmallN();
-  void ComputeSubgradientAlternative();
+  // compute `subgradient` at a given `X0`
+  // depending on the values of `penalty_type`, `lambda1` and `lambda2`
+  void ComputeSubgradientMainObjectiveRidge();
+  void ComputeSubgradientMainObjectiveNuclear();
+  void ComputeSubgradientMainObjectiveNuclearSmallN();
+  void ComputeSubgradientMainObjectiveNuclearRidge();
+  void ComputeSubgradientMainObjectiveNuclearRidgeSmallN();
+  void ComputeSubgradientMainObjectiveAlternativeNuclear();
+  void ComputeSubgradientMainObjectiveAlternativeNuclearRidge();
 
   // compute the optimal portfolio weights
   void ComputeOptimalPortfolioWeights();
 
   //// setters
 
+  // set function computing the objective function at the current iteration
+  std::function<double(void)> SetObjectiveFunction(
+    const char penalty_type,
+    const double lambda1,
+    const double lambda2
+  ) const;
+
   // set function computing the `step_size` at the current iteration
-  std::function<double(void)> SetObjectiveFunction() const;
-  std::function<double(void)> SetStepSizeFunction() const;
-  std::function<void(void)> SetSubgradientFunction();
+  std::function<double(void)> SetStepSizeFunction(
+    const char step_size_type
+  ) const;
 
   // set `step_size_constant`
-  double SetStepSizeConstant(const double step_size_constant) const;
+  double SetStepSizeConstant(
+    const double step_size_constant,
+    const double lambda2
+  ) const;
 
-  // set the penalty parameter lambda
-  void SetLambda(double lambda);
+  // set function computing the subgradient of the objective function at `X0`
+  std::function<void(void)> SetSubgradientFunction(
+    const char penalty_type,
+    const double lambda1,
+    const double lambda2
+  );
 
   // set the X0 matrix to an hollow matrix with 1/N in the off-diagonal
   void SetX0ToHollow1OverN();

@@ -7,7 +7,8 @@
 \usage{
 MarkovitzRRR(
   returns,
-  penalty_parameter,
+  lambda1,
+  lambda2,
   initial_solution = matrix(0, 0, 0),
   penalty_type = "d",
   step_size_type = "d",
@@ -23,7 +24,16 @@ PlotMarkovitzRRRObjective(results)
 \item{returns}{\verb{n_observations x n_returns}-dimensional matrix of centred(!)
 test asset excess returns.}
 
-\item{penalty_parameter}{a positive number indicating the penalty parameter.}
+\item{lambda1}{a number indicating the penalty parameter associated
+with the Nuclear penalty \verb{lambda1 * ||R * X||_*} or \verb{lambda1 * ||X||_*};
+see \code{penalty_type}.
+If it is less than or equal to zero, optimization is carried on without this
+penalty.}
+
+\item{lambda2}{a number indicating the penalty parameter associated
+with the Ridge penalty \verb{lambda2 * ||X||_F^2}.
+If it is less than or equal to zero, optimization is carried on without this
+penalty.}
 
 \item{initial_solution}{\verb{n_returns x n_returns}-dimensional matrix of initial
 hedging weights. Defaults is a hollow matrix with \code{1/N} as off-diagonal elements.}
@@ -44,8 +54,8 @@ Default is \code{'d'}.}
 
 \item{step_size_constant}{numeric constant determining the step size.
 If it is negative, then it is internally set to
-\code{2./(min(sv(R))^2 + max(sv(R))^2)}, where \code{sv} denotes singular values.
-Default is \code{-1}}
+\code{2./(min(sv(R))^2 + max(sv(R))^2 + lambda2)},
+where \code{sv} denotes singular values. Default is \code{-1}}
 
 \item{max_iter}{numeric solver parameter indicating the maximum number of
 iterations. Default is \code{10000}.}
@@ -65,7 +75,15 @@ value in \verb{$objective}; the optimal portfolio weights in \verb{$weights}; th
 number of iterations in \verb{$iterations}.
 }
 \description{
-Computes Markovitz RRR
+Computes Markovitz optimal portfolios via Reduced Rank Regression
+via solving the optimization problem:
+minimize_X {0.5 ||R - RX||\emph{F^2 + lambda1 ||RX||}* + lambda2/2 ||X||_F^2 | diag(X) = 0}
+or the alternative
+minimize_X {0.5 ||R - RX||\emph{F^2 + lambda1 ||X||}* + lambda2/2 ||X||_F^2 | diag(X) = 0},
+where ||.||\emph{F denotes the Frobenious norm and ||.||}* the Nuclear norm.
+Then, optimal weights are given by:
+\code{w = diag(Var[E])^(-1) * (I - X)}, where \code{E} is the residual in the regression
+R = RX + E.
 
 Plots the  MarkovitzRRR objective function value at each iteration
 }

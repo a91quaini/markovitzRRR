@@ -7,7 +7,8 @@
 Rcpp::List MarkovitzRRRCpp(
   const arma::mat& R,
   arma::mat& X0,
-  const double lambda,
+  const double lambda1,
+  const double lambda2,
   const char penalty_type,
   const char step_size_type,
   const double step_size_constant,
@@ -30,13 +31,28 @@ Rcpp::List MarkovitzRRRCpp(
   MarkovitzRRRSolver solver(
     R,
     X0,
-    lambda,
+    lambda1,
+    lambda2,
     penalty_type,
     step_size_type,
     step_size_constant,
     max_iter,
     tolerance
   );
+
+  // if `lambda1 = lambda2 = 0`, run the unpenalized Markovitz
+  if ((lambda1 <= 0.) & (lambda2 <= 0.)) {
+
+    // solve the
+    solver.SolveUnpenalizedMarkovitz();
+
+    return Rcpp::List::create(
+      Rcpp::Named("solution") = solver.GetSolution(),
+      Rcpp::Named("objective") = solver.GetObjective(),
+      Rcpp::Named("weights") = solver.GetWeights()
+    );
+
+  }
 
   // solve the optimization problem
   solver.Solve();
@@ -63,11 +79,11 @@ Rcpp::List MarkovitzRRRAltCpp(
 
   // initialize data
   DykstraAP solver(
-      R,
-      tau,
-      lambda,
-      max_iter,
-      tolerance
+    R,
+    tau,
+    lambda,
+    max_iter,
+    tolerance
   );
 
   // solve the optimization problem

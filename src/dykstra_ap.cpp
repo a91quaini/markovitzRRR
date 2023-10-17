@@ -1,6 +1,7 @@
 // Author: Alberto Quaini
 
 #include "dykstra_ap.h"
+#include "simplexproj.h"
 
 //// Implementation of MarkovitzRRRSolver
 
@@ -15,6 +16,7 @@ DykstraAP::DykstraAP(
   R(R),
   T(R.n_rows),
   N(R.n_cols),
+  minNT(std::min(N, T)),
   X(N, N),
   B(R),
   a(T, N),
@@ -88,15 +90,14 @@ void DykstraAP::Solve() {
 
     // main loop
     do {
-      Rcpp::Rcout << "\n";
-      Rcpp::Rcout << "iter = " << iter << "\n";
-      Rcpp::Rcout << "\n";
-      Rcpp::Rcout << "Step A\n";
+      Rcpp::Rcout << "\n+++++++++++++++++++++++\n";
+      Rcpp::Rcout << "iter = " << iter << "\n\n";
+      Rcpp::Rcout << "Step A\n\n";
       // Compute the projection of `B + a` on `A = {Z | ||Z||_* <= tau}`
       // and update `a`.
       ComputeStepA();
 
-      Rcpp::Rcout << "Step A\n";
+      Rcpp::Rcout << "Step B\n\n";
       // Compute the projection of `A + b` on `B = {RX | diag(X)=0}`
       // and update `b`.
       ComputeStepB();
@@ -128,16 +129,13 @@ void DykstraAP::ComputeStepA() {
   // `tau / sum(sv)`
   const double sv_sum = arma::accu(sv);
 
-  Rcpp::Rcout << "sum(sv) pre = " << arma::sum(sv) << "\n";
+  Rcpp::Rcout << "sum(sv) pre = " << sv_sum << "\n";
 
-  if (sv_sum > tau) {
-    sv *= tau / arma::accu(sv);
-  }
-
-  Rcpp::Rcout << "sum(sv) post = " << arma::sum(sv) << "\n";
+  if (sv_sum > tau) ProjectOntoSimplex(sv, tau);
+  Rcpp::Rcout << "sum(sv) post = " << arma::accu(sv) << "\n\n";
 
   // compute `A` with soft-thresholded singular values
-  A = U.head_cols(N) * arma::diagmat(sv) * V.t();
+  A = U.head_cols(minNT) * arma::diagmat(sv) * V.head_cols(minNT).t();
 
   Rcpp::Rcout << "First row of A = " << A.row(0) << "\n";
 
@@ -154,10 +152,14 @@ void DykstraAP::ComputeStepA() {
 // along the non-diagonal elements of `X`.
 void DykstraAP::ComputeStepB() {
 
-  for (unsigned int i = 0; i < N; ++i) {
+  // first update of `b`: `b += A`
+  b += A;
+  Rcpp::Rcout << "Expectation of b = " << arma::mean(b) << "\n";
 
-    // first update of `b`: `b += A`
-    b += A;
+  // compute `X` by running N linear regressions of b^(i),
+  // which is the i-th column of b, on Ri, which is R without the i-th
+  // column
+  for (unsigned int i = 0; i < N; ++i) {
 
     // const arma::uvec columns = join_vert(
     //   assets_idx.head(i),
@@ -183,16 +185,15 @@ void DykstraAP::ComputeStepB() {
 
   }
 
-  // compute `B`
+  // compute projection `B`
   B = R * X;
 
   Rcpp::Rcout << "First row of B = " << B.row(0) << "\n";
 
-  // second update of `b`: `b -+ B`
+  // second update of `b`: `b -= B`
   b -= B;
 
   Rcpp::Rcout << "First row of b = " << b.row(0) << "\n";
-
 
 };
 
