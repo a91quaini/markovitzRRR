@@ -39,7 +39,7 @@ private:
   const unsigned int max_iter;
   unsigned int iter;
   // objective function
-  const std::function<double()> ComputeObjective;
+  const std::function<double(void)> ComputeObjective;
   arma::rowvec objective;
   double objective_best;
   // subgradient
@@ -53,10 +53,9 @@ private:
   const std::function<double(void)> ComputeStepSize;
   // tolerance
   const double tolerance;
-  // ancilliary
-  arma::vec X_norm;
-  arma::vec Sigma_inv_norm;
-  arma::mat Weights;
+  // solver status
+  bool is_improved;
+  bool is_converged;
 
   // accessible members
 public:
@@ -65,24 +64,39 @@ public:
 
   explicit MarkovitzRRRSolver(
     const arma::mat& R,
-    const arma::mat& X0,
+    const arma::mat& X0 = arma::mat(),
     const double lambda1 = 0.,
     const double lambda2 = 0.,
     const char penalty_type = 'd',
     const char step_size_type = 'd',
-    const double step_size_constant = -1.,
+    const double step_size_constant = 0.,
     const unsigned int max_iter = 10000,
-    const double tolerance = -1.
+    const double tolerance = 0.
   );
-
-  // Solve the optimization problem using the projected subgradient path
-  void Solve();
 
   // Solve the unpenalized Markovitz optimization problem
   void SolveUnpenalizedMarkovitz();
 
+  // Solve the optimization problem using the projected subgradient path
+  void Solve();
+
   // Compute the projected subgradient step based on the current iteration
   void ComputeProjectedSubgradientStep();
+
+  // Compute the initial objective function
+  void ComputeInitialObjective();
+
+  // set the X0 matrix to an hollow matrix with 1/N in the off-diagonal
+  void SetX0ToHollow1OverN();
+
+  // compute the optimal portfolio weights
+  void ComputeOptimalPortfolioWeights();
+
+  // Check solver status:
+  // is the objective value decreased from the value at the initial value?
+  // is the objective value at the last solution equal to
+  // the value at the best solution?
+  void CheckSolverStatus();
 
   // compute the objective function at a given `X`
   // depending on the values of `penalty_type`, `lambda1` and `lambda2`
@@ -111,9 +125,6 @@ public:
   void ComputeSubgradientMainObjectiveAlternativeNuclear();
   void ComputeSubgradientMainObjectiveAlternativeNuclearRidge();
 
-  // compute the optimal portfolio weights
-  void ComputeOptimalPortfolioWeights();
-
   //// setters
 
   // set function computing the objective function at the current iteration
@@ -141,9 +152,6 @@ public:
     const double lambda2
   );
 
-  // set the X0 matrix to an hollow matrix with 1/N in the off-diagonal
-  void SetX0ToHollow1OverN();
-
   //// getters
 
   // get the vector of objective function evaluation at each iteration
@@ -158,14 +166,15 @@ public:
   // get number of iterations
   const unsigned int GetIterations() const;
 
-  // get
-  const arma::vec& GetX_norm() const;
+  // get solver status:
+  // is the objective value decreased from the value at the initial value?
+  // is the objective value at the last solution equal to
+  // the value at the best solution?
+  const bool GetIsImproved() const;
+  const bool GetIsConverged() const;
 
-  // get
-  const arma::vec& GetSigma_inv_norm() const;
-
-  // get
-  const arma::mat& GetWWeights() const;
+  // get output list
+  const Rcpp::List GetOutputList() const;
 
 };
 

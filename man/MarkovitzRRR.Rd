@@ -3,7 +3,7 @@
 \name{MarkovitzRRR}
 \alias{MarkovitzRRR}
 \alias{PlotMarkovitzRRRObjective}
-\title{Compute Markovitz RRR}
+\title{Compute Markovitz Optimal Portfolios via Reduced Rank Regression (RRR)}
 \usage{
 MarkovitzRRR(
   returns,
@@ -14,7 +14,7 @@ MarkovitzRRR(
   step_size_type = "d",
   step_size_constant = -1,
   max_iter = 10000,
-  tolerance = -1,
+  tolerance = 0,
   check_arguments = TRUE
 )
 
@@ -53,15 +53,17 @@ penalty given by \verb{||X||_*}. Default is \code{'d'}.}
 Default is \code{'d'}.}
 
 \item{step_size_constant}{numeric constant determining the step size.
-If it is negative, then it is internally set to
+If it is zero or negative, then it is internally set to
 \code{2./(min(sv(R))^2 + max(sv(R))^2 + lambda2)},
-where \code{sv} denotes singular values. Default is \code{-1}}
+where \code{sv} denotes singular values. Default is \code{0}.}
 
 \item{max_iter}{numeric solver parameter indicating the maximum number of
 iterations. Default is \code{10000}.}
 
-\item{tolerance}{numeric tolerance check for \verb{||X_k+1 - X_k||_F^2 / N^2}.
-If \code{tolerance <= 0}, no check is performed. Default is \code{-1}.}
+\item{tolerance}{numeric tolerance check for the Frobenious norm
+of successive solutions \verb{||X_k+1 - X_k||_F / N}.
+If \code{tolerance > 0}, then the solver is stopped when \verb{||X_k+1 - X_k||_F / N <= tolerance}.
+If \code{tolerance <= 0}, no check is performed. Default is \code{0}.}
 
 \item{check_arguments}{boolean \code{TRUE} if you want to check function arguments;
 \code{FALSE} otherwise. Default is \code{TRUE}.}
@@ -71,12 +73,17 @@ markovitzRRR objective function values at each iteration.}
 }
 \value{
 a list containing: the optimal solution in \verb{$solution}; the optimal
-value in \verb{$objective}; the optimal portfolio weights in \verb{$weights}; the
-number of iterations in \verb{$iterations}.
+value in \verb{$objective}; the optimal portfolio weights in \verb{$weights}.
+if at least one of \code{lambda1} and \code{lambda2} is positive, then the list
+additionally contains: the number of iterations in \verb{$iterations};
+the solver status check (indicating if the objective value decreased from the
+value at the initial value) in \verb{$is_improved}; the solver status
+check (indicating if the objective value at the last solution equal to
+the value at the best solution?) in \verb{$is_converged}.
 }
 \description{
 Computes Markovitz optimal portfolios via Reduced Rank Regression
-via solving the optimization problem:
+approach by solving the optimization problem:
 minimize_X {0.5 ||R - RX||\emph{F^2 + lambda1 ||RX||}* + lambda2/2 ||X||_F^2 | diag(X) = 0}
 or the alternative
 minimize_X {0.5 ||R - RX||\emph{F^2 + lambda1 ||X||}* + lambda2/2 ||X||_F^2 | diag(X) = 0},
@@ -86,4 +93,10 @@ Then, optimal weights are given by:
 R = RX + E.
 
 Plots the  MarkovitzRRR objective function value at each iteration
+}
+\examples{
+# Example usage with real data
+returns = markovitzRRR::returns[,-1]
+result = MarkovitzRRR(returns, lambda1 = 0.1, lambda2 = 0.1)
+
 }

@@ -4,6 +4,9 @@
 #include "solver.h"
 #include "dykstra_ap.h"
 
+////////////////////////////////
+////// MarkovitzRRRCpp /////////
+
 Rcpp::List MarkovitzRRRCpp(
   const arma::mat& R,
   arma::mat& X0,
@@ -18,7 +21,7 @@ Rcpp::List MarkovitzRRRCpp(
 
   // if no initial `X0` is given, set it to hollow matrix with 1/N on the
   // off-diagonal
-  if (!X0.n_elem) {
+  if (X0.empty()) {
 
     X0 = arma::toeplitz(arma::join_cols(
       arma::vec::fixed<1>(arma::fill::zeros),
@@ -40,34 +43,16 @@ Rcpp::List MarkovitzRRRCpp(
     tolerance
   );
 
-  // if `lambda1 = lambda2 = 0`, run the unpenalized Markovitz
-  if ((lambda1 <= 0.) & (lambda2 <= 0.)) {
-
-    // solve the
-    solver.SolveUnpenalizedMarkovitz();
-
-    return Rcpp::List::create(
-      Rcpp::Named("solution") = solver.GetSolution(),
-      Rcpp::Named("objective") = solver.GetObjective(),
-      Rcpp::Named("weights") = solver.GetWeights()
-    );
-
-  }
-
   // solve the optimization problem
   solver.Solve();
 
-  return Rcpp::List::create(
-    Rcpp::Named("solution") = solver.GetSolution(),
-    Rcpp::Named("objective") = solver.GetObjective(),
-    Rcpp::Named("weights") = solver.GetWeights(),
-    Rcpp::Named("iterations") = solver.GetIterations(),
-    Rcpp::Named("X_norm") = solver.GetX_norm(),
-    Rcpp::Named("Sigma_inv_norm") = solver.GetSigma_inv_norm(),
-    Rcpp::Named("Weights") = solver.GetWWeights()
-  );
+  // return output list
+  return solver.GetOutputList();
 
 }
+
+////////////////////////////////
+////// MarkovitzRRRAltCpp //////
 
 Rcpp::List MarkovitzRRRAltCpp(
   const arma::mat& R,

@@ -4,7 +4,7 @@
 
 //// Implementation of MarkovitzRRRSolver
 
-// class constructor
+// Class constructor
 MarkovitzRRRSolver::MarkovitzRRRSolver(
   const arma::mat& R,
   const arma::mat& X0,
@@ -15,7 +15,7 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   const double step_size_constant,
   const unsigned int max_iter,
   const double tolerance
-) : // initialize object members at class construction
+) :
   R(R),
   T(R.n_rows),
   N(R.n_cols),
@@ -25,118 +25,93 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   lambda1(lambda1),
   lambda2(lambda2),
   max_iter(max_iter),
-  iter(1),
+  iter(0),
   ComputeObjective(SetObjectiveFunction(penalty_type, lambda1, lambda2)),
   objective(max_iter),
   ComputeSubgradient(SetSubgradientFunction(penalty_type, lambda1, lambda2)),
   step_size_constant(SetStepSizeConstant(step_size_constant, lambda2)),
   ComputeStepSize(SetStepSizeFunction(step_size_type)),
   tolerance(tolerance),
-  // ancilliary
-  X_norm(max_iter),
-  Sigma_inv_norm(max_iter),
-  Weights(N, max_iter)
-{
+  is_improved(false),
+  is_converged(false) {
 
-  // if N is small compared to T, the `ComputeSubgradient` function assumes
-  // that the svd of R is computed and stored in U, sv and V
-  // note: here `default_NT_ratio = .7`
-  if ((double)N/T < .7) {
+  ComputeInitialObjective();
 
-    // compute svd(R) once
-    arma::svd(U, sv, V, R);
-    // remove the last (T - N) columns from U
-    U.shed_cols(N, T-1);
-
-  }
-
-  // compute the objective function at `X0`
-  objective(0) = ComputeObjective();
-
-  // set the best objective value to `objective(0)`
-  objective_best = objective(0);
-
-};
+}
 
 // compute the projected subgradient optimization path
 void MarkovitzRRRSolver::Solve() {
 
-  // main loop with solution check
-  if (tolerance > 0) {
+  // Solve the unpenalized problem if lambda1 and lambda2 are zero or negative
+  // and return the optimal portfolio weights
+  if ((lambda1 <= 0.) && (lambda2 <= 0.)) {
 
-    // main loop
-    do {
-
-      // set `X0` to `X`
-      X0 = X;
-
-      // Compute the projected subgradient step based on the current iteration
-      ComputeProjectedSubgradientStep();
-
-    } while(
-        // while iter < max_iter - 1
-        (++iter < max_iter) &&
-        // and ||X - X0||_F^2 > tolerance
-        (arma::accu(arma::square(X - X0)) > tolerance)
-    );
-
-    // remove elements in excess in `objective`
-    objective = objective.head(iter);
-
-  // main loop without solution check
-  } else {
-
-    // main loop
-    do {
-
-      // set `X0` to `X`
-      X0 = X;
-
-      // Compute the projected subgradient step based on the current iteration
-      ComputeProjectedSubgradientStep();
-
-      // ancilliary
-      X_norm(iter) = arma::norm(X, "fro");
-
-      // compute the inverse marginal variances of the residuals between returns
-      // R and hedging returns R * X
-      const arma::mat residuals_variance_inv = arma::diagmat(
-        1. / arma::var(R - R * Xbest, 0, 0)
-      );
-
-      ////
-      const arma::mat Sigma_inv = residuals_variance_inv -
-        residuals_variance_inv * Xbest;
-      Sigma_inv_norm(iter) = arma::norm(Sigma_inv, "fro");
-
-      arma::vec wweights = arma::sum(Sigma_inv, 0).t();
-
-      // project weights into the unit simplex
-      wweights /= arma::accu(wweights);
-      Weights.col(iter) = wweights;
-
-    } while(++iter < max_iter);
+    SolveUnpenalizedMarkovitz();
+    ComputeOptimalPortfolioWeights();
+    return;
 
   }
+
+  // Otherwise solve the penalized problem via the projected subgradient method
+  while(++iter < max_iter) {
+
+    // set `X0` to `X`
+    X0 = X;
+
+    // Compute the projected subgradient step based on the current iteration
+    ComputeProjectedSubgradientStep();
+
+    // If tolerance > 0, then compute a stop rule based on the Frobenius
+    // distance between consecutive solutions
+    if (
+      (tolerance > 0) &&
+      (arma::norm(X - X0, "fro") / static_cast<double>(N) <= tolerance)
+    ) break;
+
+  // Until the number of iterations hits the maximum number
+  };
+
+  // Compute optimal portfolio weights
+  ComputeOptimalPortfolioWeights();
+
+  // Check and update solver status
+  CheckSolverStatus();
 
 }
 
 // solve the unpenalized Markovitz optimization problem
 void MarkovitzRRRSolver::SolveUnpenalizedMarkovitz() {
 
-  // compute `X` by running N linear regressions of R^(i), the i-th column of R,
-  // on R^(-i), i.e., R without the i-th column
+
+  // compute `X` by running N linear regressions of the i-th column of R
+  // on the remaining (hedging) columns of R
   for (unsigned int i = 0; i < N; ++i) {
 
-    arma::mat Ri = R;
-    Ri.shed_col(i);
+    // Set indices of hedging portfolios
+    arma::uvec indices;
+    if (i < N - 1) {
+      // Standard case: concatenate two ranges
+      indices = arma::join_vert(
+        arma::regspace<arma::uvec>(0, i - 1),
+        arma::regspace<arma::uvec>(i + 1, N - 1)
+      );
+    } else {
+      // Edge case: i is the last index, so only take the first range
+      indices = arma::regspace<arma::uvec>(0, N - 2);  // N - 2 is the last valid index before N - 1
+    }
+
+    // Store hedging portfolio returns
+    const arma::mat Ri = R.cols(indices);
+
+    // Compute hedging coefficients
     const arma::vec coeff = arma::solve(
       Ri.t() * Ri,
       Ri.t() * R.col(i),
       arma::solve_opts::likely_sympd
     );
 
-    X.col(i) = arma::join_vert(
+    // Fill in the solution coefficient matrix
+    Xbest.col(i) = arma::join_vert(
       coeff.head(i),
       arma::zeros(1),
       coeff.tail(N-1-i)
@@ -144,11 +119,11 @@ void MarkovitzRRRSolver::SolveUnpenalizedMarkovitz() {
 
   }
 
-  // store the objective function value `1/2||R - R * X||_F^2`
+  // Store the objective function value `1/2||R - R * X||_F^2`
   objective(1) = .5 * arma::accu(arma::square(R - R * X));
 
-  // keep only the first two function evaluations
-  objective = objective.head(2);
+  // Keep only the first two function evaluations
+  objective.resize(2);
 
 }
 
@@ -177,6 +152,79 @@ void MarkovitzRRRSolver::ComputeProjectedSubgradientStep() {
   }
 
 };
+
+void MarkovitzRRRSolver::ComputeInitialObjective() {
+
+  // if N is small compared to T, the `ComputeSubgradient` function assumes
+  // that the svd of R is computed and stored in U, sv and V
+  // note: here `default_NT_ratio = .4`
+  if (static_cast<double>(N) / T < .4) {
+
+    // compute svd(R) once
+    arma::svd(U, sv, V, R);
+    // remove the last (T - N) columns from U
+    U.shed_cols(N, T-1);
+
+  }
+
+  // compute the objective function at `X0`
+  objective(0) = ComputeObjective();
+
+  // set the best objective value to `objective(0)`
+  objective_best = objective(0);
+
+}
+
+// set initial point to hollow matrix with 1/N on the off-diagonal
+void MarkovitzRRRSolver::SetX0ToHollow1OverN () {
+
+  X0 = arma::toeplitz(arma::join_cols(
+    arma::vec::fixed<1>(arma::fill::zeros),
+    arma::vec(R.n_cols-1, arma::fill::value(1./R.n_cols))
+  ));
+
+};
+
+// Check solver status
+void MarkovitzRRRSolver::CheckSolverStatus() {
+
+  // Do not update solver_status if the objective is empty or if the objective
+  // at the best solution is not lower than the value at the initial point
+  if (objective.empty()) return;
+
+  // Set is_improved to true if the objective value is decreased from the
+  // value at the initial point
+  is_improved = objective_best >= objective(0);
+
+  // Set is_converged to true if the objective value at the last solution equals
+  // the value at the best solution
+  is_converged = objective(objective.n_elem - 1) <= arma::min(objective) +
+    1e2 * arma::datum::eps;
+
+}
+
+// compute the optimal portfolio weights
+void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
+
+  // Compute the inverse of the variances of residuals
+  const arma::rowvec inv_var_res = 1.0 / arma::max(
+    arma::var(R - R * Xbest),
+    arma::datum::eps
+  );
+
+  // compute the unscaled optimal weights: Sigma^(-1)'1 where Sigma^(-1),
+  // the inverse variance covariance matrix of returns, is computed via
+  // the solution X and the marginal variances of the residuals
+  weights = arma::sum(arma::eye(N, N) - Xbest, 0) % inv_var_res;
+
+  // Compute the sum of the weights
+  const double weights_sum = arma::accu(weights);
+
+  // Project weights into the unit simplex
+  if (weights_sum != 0) weights /= weights_sum;
+
+};
+
 
 //// Objective function
 
@@ -426,27 +474,6 @@ double MarkovitzRRRSolver::ComputeStepSizeModifiedPolyak() const {
 
 };
 
-// compute the optimal portfolio weights
-void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
-
-  // compute the inverse marginal variances of the residuals between returns
-  // R and hedging returns R * X
-  const arma::mat residuals_variance_inv = arma::diagmat(
-    1. / arma::var(R - R * Xbest, 0, 0)
-  );
-
-  // compute the unscaled optimal weights: Sigma^(-1)'1 where Sigma^(-1),
-  // the inverse variance covariance matrix of returns, is computed via
-  // the solution X and the marginal variances of the residuals
-  weights = arma::sum(
-    residuals_variance_inv - residuals_variance_inv * Xbest, 0
-  );
-
-  // project weights into the unit simplex
-  weights /= arma::accu(weights);
-
-};
-
 ///////////////
 /// setters ///
 
@@ -471,7 +498,7 @@ std::function<double(void)> MarkovitzRRRSolver::SetObjectiveFunction(
     if ((lambda1 > 0.) & (lambda2 > 0.)) {
 
 
-      return (double)N/T >= .7 ?
+      return static_cast<double>(N) / T >= .4 ?
       std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclearRidge, this) :
       std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclearRidgeSmallN, this);
 
@@ -480,7 +507,7 @@ std::function<double(void)> MarkovitzRRRSolver::SetObjectiveFunction(
     // if only `lambda1 > 0`, use the Nuclear penalty
     if (lambda1 > 0.) {
 
-      return (double)N/T >= .7 ?
+      return static_cast<double>(N) / T >= .4 ?
       std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclear, this) :
       std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclearSmallN, this);
 
@@ -549,7 +576,7 @@ std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
     if ((lambda1 > 0.) & (lambda2 > 0.)) {
 
 
-      return (double)N/T >= .7 ?
+      return static_cast<double>(N) / T >= .4 ?
       std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearRidge, this) :
       std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearRidgeSmallN, this);
 
@@ -558,7 +585,7 @@ std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
     // if only `lambda1 > 0`, use the Nuclear penalty
     if (lambda1 > 0.) {
 
-      return (double)N/T >= .7 ?
+      return static_cast<double>(N) / T >= .4 ?
       std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclear, this) :
       std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearSmallN, this);
 
@@ -663,14 +690,6 @@ double MarkovitzRRRSolver::SetStepSizeConstant(
 
 };
 
-// set initial point to hollow matrix with 1/N on the off-diagonal
-void MarkovitzRRRSolver::SetX0ToHollow1OverN () {
-  X0 = arma::toeplitz(arma::join_cols(
-    arma::vec::fixed<1>(arma::fill::zeros),
-    arma::vec(R.n_cols-1, arma::fill::value(1./R.n_cols))
-  ));
-};
-
 ///////////////
 /// getters ///
 
@@ -694,19 +713,37 @@ const unsigned int MarkovitzRRRSolver::GetIterations() const {
   return iter;
 };
 
-// ancilliary
-
-// get
-const arma::vec& MarkovitzRRRSolver::GetX_norm() const {
-  return X_norm;
+// get solver status
+const bool MarkovitzRRRSolver::GetIsImproved() const {
+  return is_improved;
+};
+const bool MarkovitzRRRSolver::GetIsConverged() const {
+  return is_converged;
 };
 
-// get
-const arma::vec& MarkovitzRRRSolver::GetSigma_inv_norm() const {
-  return Sigma_inv_norm;
-};
+// get output list
+const Rcpp::List MarkovitzRRRSolver::GetOutputList() const {
 
-// get
-const arma::mat& MarkovitzRRRSolver::GetWWeights() const {
-  return Weights;
+  // if lambda1 and lambda2 are zero or negative, return the output list for the
+  // unpenalized Markovitz solution
+  if ((lambda1 <= 0.) & (lambda2 <= 0.)) {
+
+    return Rcpp::List::create(
+      Rcpp::Named("solution") = Xbest,
+      Rcpp::Named("objective") = objective,
+      Rcpp::Named("weights") = weights
+    );
+
+  }
+
+  // Otherwise return the output list for the penalized Markovitz solution
+  return Rcpp::List::create(
+    Rcpp::Named("solution") = Xbest,
+    Rcpp::Named("objective") = objective,
+    Rcpp::Named("weights") = weights,
+    Rcpp::Named("iterations") = iter,
+    Rcpp::Named("is_improved") = is_improved,
+    Rcpp::Named("is_converged") = is_converged
+  );
+
 };

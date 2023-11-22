@@ -4,11 +4,11 @@
 ######  MarkovitzRRR ########
 #############################
 
-#' Compute Markovitz RRR
+#' Compute Markovitz Optimal Portfolios via Reduced Rank Regression (RRR)
 #'
 #' @name MarkovitzRRR
 #' @description Computes Markovitz optimal portfolios via Reduced Rank Regression
-#' via solving the optimization problem:
+#' approach by solving the optimization problem:
 #' minimize_X {0.5 ||R - RX||_F^2 + lambda1 ||RX||_* + lambda2/2 ||X||_F^2 | diag(X) = 0}
 #' or the alternative
 #' minimize_X {0.5 ||R - RX||_F^2 + lambda1 ||X||_* + lambda2/2 ||X||_F^2 | diag(X) = 0},
@@ -43,19 +43,31 @@
 #' `'c'` for constant step size: `step_size_constant`.
 #' Default is `'d'`.
 #' @param step_size_constant numeric constant determining the step size.
-#' If it is negative, then it is internally set to
+#' If it is zero or negative, then it is internally set to
 #' `2./(min(sv(R))^2 + max(sv(R))^2 + lambda2)`,
-#' where `sv` denotes singular values. Default is `-1`
+#' where `sv` denotes singular values. Default is `0`.
 #' @param max_iter numeric solver parameter indicating the maximum number of
 #' iterations. Default is `10000`.
-#' @param tolerance numeric tolerance check for `||X_k+1 - X_k||_F^2 / N^2`.
-#' If `tolerance <= 0`, no check is performed. Default is `-1`.
+#' @param tolerance numeric tolerance check for the Frobenious norm
+#' of successive solutions `||X_k+1 - X_k||_F / N`.
+#' If `tolerance > 0`, then the solver is stopped when `||X_k+1 - X_k||_F / N <= tolerance`.
+#' If `tolerance <= 0`, no check is performed. Default is `0`.
 #' @param check_arguments boolean `TRUE` if you want to check function arguments;
 #' `FALSE` otherwise. Default is `TRUE`.
 #'
 #' @return a list containing: the optimal solution in `$solution`; the optimal
-#' value in `$objective`; the optimal portfolio weights in `$weights`; the
-#' number of iterations in `$iterations`.
+#' value in `$objective`; the optimal portfolio weights in `$weights`.
+#' if at least one of `lambda1` and `lambda2` is positive, then the list
+#' additionally contains: the number of iterations in `$iterations`;
+#' the solver status check (indicating if the objective value decreased from the
+#' value at the initial value) in `$is_improved`; the solver status
+#' check (indicating if the objective value at the last solution equal to
+#' the value at the best solution?) in `$is_converged`.
+#'
+#' @examples
+#' # Example usage with real data
+#' returns = markovitzRRR::returns[,-1]
+#' result = MarkovitzRRR(returns, lambda1 = 0.1, lambda2 = 0.1)
 #'
 #' @export
 MarkovitzRRR = function(
@@ -67,10 +79,11 @@ MarkovitzRRR = function(
   step_size_type = 'd',
   step_size_constant = -1.,
   max_iter = 10000,
-  tolerance = -1.,
+  tolerance = 0.,
   check_arguments = TRUE
 ) {
 
+  # Check arguments
   if (check_arguments) {
 
     CheckReturns(returns)
@@ -87,6 +100,7 @@ MarkovitzRRR = function(
 
   }
 
+  # Compute the Markovitz RRR solution
   return(.Call(`_markovitzRRR_MarkovitzRRRCpp`,
     returns,
     initial_solution,
