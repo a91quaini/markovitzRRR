@@ -30,25 +30,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// MarkovitzRRRAltCpp
-Rcpp::List MarkovitzRRRAltCpp(const arma::mat& R, const double tau, const double lambda, const unsigned int max_iter, const double tolerance);
-RcppExport SEXP _markovitzRRR_MarkovitzRRRAltCpp(SEXP RSEXP, SEXP tauSEXP, SEXP lambdaSEXP, SEXP max_iterSEXP, SEXP toleranceSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type R(RSEXP);
-    Rcpp::traits::input_parameter< const double >::type tau(tauSEXP);
-    Rcpp::traits::input_parameter< const double >::type lambda(lambdaSEXP);
-    Rcpp::traits::input_parameter< const unsigned int >::type max_iter(max_iterSEXP);
-    Rcpp::traits::input_parameter< const double >::type tolerance(toleranceSEXP);
-    rcpp_result_gen = Rcpp::wrap(MarkovitzRRRAltCpp(R, tau, lambda, max_iter, tolerance));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_markovitzRRR_MarkovitzRRRCpp", (DL_FUNC) &_markovitzRRR_MarkovitzRRRCpp, 9},
-    {"_markovitzRRR_MarkovitzRRRAltCpp", (DL_FUNC) &_markovitzRRR_MarkovitzRRRAltCpp, 5},
     {NULL, NULL, 0}
 };
 

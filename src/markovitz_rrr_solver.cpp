@@ -1,12 +1,10 @@
 // Author: Alberto Quaini
 
-#include "solver.h"
-
-//// Implementation of MarkovitzRRRSolver
+#include "markovitz_rrr_solver.h"
 
 // Class constructor
 MarkovitzRRRSolver::MarkovitzRRRSolver(
-  const arma::mat& R,
+  const arma::mat& returns,
   const arma::mat& X0,
   const double lambda1,
   const double lambda2,
@@ -16,24 +14,24 @@ MarkovitzRRRSolver::MarkovitzRRRSolver(
   const unsigned int max_iter,
   const double tolerance
 ) :
-  R(R),
-  T(R.n_rows),
-  N(R.n_cols),
-  minNT(std::min(N, T)),
-  X(X0),
-  Xbest(X0),
-  lambda1(lambda1),
-  lambda2(lambda2),
-  max_iter(max_iter),
-  iter(0),
-  ComputeObjective(SetObjectiveFunction(penalty_type, lambda1, lambda2)),
-  objective(max_iter),
-  ComputeSubgradient(SetSubgradientFunction(penalty_type, lambda1, lambda2)),
-  step_size_constant(SetStepSizeConstant(step_size_constant, lambda2)),
-  ComputeStepSize(SetStepSizeFunction(step_size_type)),
-  tolerance(tolerance),
-  is_improved(false),
-  is_converged(false) {
+returns(returns),
+T(returns.n_rows),
+N(returns.n_cols),
+minNT(std::min(N, T)),
+X(X0),
+Xbest(X0),
+lambda1(lambda1),
+lambda2(lambda2),
+ComputeObjective(SetObjectiveFunction(penalty_type, lambda1, lambda2)),
+objective(max_iter),
+ComputeSubgradient(SetSubgradientFunction(penalty_type, lambda1, lambda2)),
+step_size_constant(SetStepSizeConstant(step_size_constant, lambda2)),
+ComputeStepSize(SetStepSizeFunction(step_size_type)),
+max_iter(max_iter),
+iter(0),
+tolerance(tolerance),
+is_improved(false),
+is_converged(false) {
 
   ComputeInitialObjective();
 
@@ -64,11 +62,11 @@ void MarkovitzRRRSolver::Solve() {
     // If tolerance > 0, then compute a stop rule based on the Frobenius
     // distance between consecutive solutions
     if (
-      (tolerance > 0) &&
-      (arma::norm(X - X0, "fro") / static_cast<double>(N) <= tolerance)
+        (tolerance > 0) &&
+          (arma::norm(X - X0, "fro") / static_cast<double>(N) <= tolerance)
     ) break;
 
-  // Until the number of iterations hits the maximum number
+    // Until the number of iterations hits the maximum number
   };
 
   // Compute optimal portfolio weights
@@ -101,12 +99,12 @@ void MarkovitzRRRSolver::SolveUnpenalizedMarkovitz() {
     }
 
     // Store hedging portfolio returns
-    const arma::mat Ri = R.cols(indices);
+    const arma::mat returns_i = returns.cols(indices);
 
     // Compute hedging coefficients
     const arma::vec coeff = arma::solve(
-      Ri.t() * Ri,
-      Ri.t() * R.col(i),
+      returns_i.t() * returns_i,
+      returns_i.t() * returns.col(i),
       arma::solve_opts::likely_sympd
     );
 
@@ -120,7 +118,7 @@ void MarkovitzRRRSolver::SolveUnpenalizedMarkovitz() {
   }
 
   // Store the objective function value `1/2||R - R * X||_F^2`
-  objective(1) = .5 * arma::accu(arma::square(R - R * X));
+  objective(1) = .5 * arma::accu(arma::square(returns - returns * X));
 
   // Keep only the first two function evaluations
   objective.resize(2);
@@ -161,9 +159,9 @@ void MarkovitzRRRSolver::ComputeInitialObjective() {
   if (static_cast<double>(N) / T < .4) {
 
     // compute svd(R) once
-    arma::svd(U, sv, V, R);
+    arma::svd(U, sv, V, returns);
     // remove the last (T - N) columns from U
-    U.shed_cols(N, T-1);
+    U.shed_cols(N, T - 1);
 
   }
 
@@ -180,7 +178,7 @@ void MarkovitzRRRSolver::SetX0ToHollow1OverN () {
 
   X0 = arma::toeplitz(arma::join_cols(
     arma::vec::fixed<1>(arma::fill::zeros),
-    arma::vec(R.n_cols-1, arma::fill::value(1./R.n_cols))
+    arma::vec(returns.n_cols - 1, arma::fill::value(1. / returns.n_cols))
   ));
 
 };
@@ -208,7 +206,7 @@ void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
 
   // Compute the inverse of the variances of residuals
   const arma::rowvec inv_var_res = 1.0 / arma::max(
-    arma::var(R - R * Xbest),
+    arma::var(returns - returns * Xbest),
     arma::datum::eps
   );
 
@@ -233,8 +231,8 @@ void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
 double MarkovitzRRRSolver::ComputeMainObjectiveRidge() const {
 
   // Rcpp::Rcout << "ComputeMainObjectiveRidge\n";
-  return .5 * arma::accu(arma::square(R - R * X)) +
-    .5 * lambda2 * arma::accu(X % X);
+  return .5 * arma::accu(arma::square(returns - returns * X)) +
+         .5 * lambda2 * arma::accu(X % X);
 
 };
 
@@ -243,9 +241,9 @@ double MarkovitzRRRSolver::ComputeMainObjectiveRidge() const {
 double MarkovitzRRRSolver::ComputeMainObjectiveNuclear() const {
 
   // Rcpp::Rcout << "ComputeMainObjectiveNuclear\n";
-  const arma::mat RX = R * X;
-  return .5 * arma::accu(arma::square(R - RX)) +
-    lambda1 * arma::accu(arma::svd(RX));
+  const arma::mat returnsX = returns * X;
+  return .5 * arma::accu(arma::square(returns - returnsX)) +
+    lambda1 * arma::accu(arma::svd(returnsX));
 
 };
 
@@ -253,14 +251,13 @@ double MarkovitzRRRSolver::ComputeMainObjectiveNuclear() const {
 // `1/2 ||R - RX||_F^2 + lambda1 ||RX||_*` for given `X`
 double MarkovitzRRRSolver::ComputeMainObjectiveNuclearSmallN() const {
 
-  // Rcpp::Rcout << "ComputeMainObjectiveNuclearSmallN\n";
   // compute `qr(X'V)`, where `V` contains the right singular vectors of `R`
   arma::mat Q, A;
   arma::qr(Q, A, X.t() * V);
 
   // return the svd decomposition of `AS`, where `S` is the diagonal matrix
   // of singular values of `R`
-  return .5 * arma::accu(arma::square(R - R * X)) +
+  return .5 * arma::accu(arma::square(returns - returns * X)) +
     lambda1 * arma::accu(arma::svd(A * arma::diagmat(sv)));
 
 };
@@ -270,9 +267,9 @@ double MarkovitzRRRSolver::ComputeMainObjectiveNuclearSmallN() const {
 double MarkovitzRRRSolver::ComputeMainObjectiveNuclearRidge() const {
 
   // Rcpp::Rcout << "ComputeMainObjectiveNuclearRidge\n";
-  const arma::mat RX = R * X;
-  return .5 * arma::accu(arma::square(R - RX)) +
-    lambda1 * arma::accu(arma::svd(RX)) +
+  const arma::mat returnsX = returns * X;
+  return .5 * arma::accu(arma::square(returns - returnsX)) +
+    lambda1 * arma::accu(arma::svd(returnsX)) +
     lambda2 * arma::accu(X % X);
 
 };
@@ -289,7 +286,7 @@ double MarkovitzRRRSolver::ComputeMainObjectiveNuclearRidgeSmallN() const {
 
   // return the svd decomposition of `AS`, where `S` is the diagonal matrix
   // of singular values of `R`
-  return .5 * arma::accu(arma::square(R - R * X)) +
+  return .5 * arma::accu(arma::square(returns - returns * X)) +
     lambda1 * arma::accu(arma::svd(A * arma::diagmat(sv))) +
     lambda2 * arma::accu(X % X);
 
@@ -300,7 +297,7 @@ double MarkovitzRRRSolver::ComputeMainObjectiveNuclearRidgeSmallN() const {
 double MarkovitzRRRSolver::ComputeMainObjectiveAlternativeNuclear() const {
 
   // Rcpp::Rcout << "ComputeMainObjectiveAlternativeNuclear\n";
-  return .5 * arma::accu(arma::square(R - R * X)) +
+  return .5 * arma::accu(arma::square(returns - returns * X)) +
     lambda1 * arma::accu(arma::svd(X));
 
 };
@@ -310,7 +307,7 @@ double MarkovitzRRRSolver::ComputeMainObjectiveAlternativeNuclear() const {
 double MarkovitzRRRSolver::ComputeMainObjectiveAlternativeNuclearRidge() const {
 
   // Rcpp::Rcout << "ComputeMainObjectiveAlternativeNuclearRidge\n";
-  return .5 * arma::accu(arma::square(R - R * X)) +
+  return .5 * arma::accu(arma::square(returns - returns * X)) +
     lambda1 * arma::accu(arma::svd(X)) +
     lambda2 * arma::accu(X % X);
 
@@ -324,7 +321,7 @@ double MarkovitzRRRSolver::ComputeMainObjectiveAlternativeNuclearRidge() const {
 void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveRidge() {
 
   // Rcpp::Rcout << "ComputeSubgradientMainObjectiveRidge\n";
-  const arma::mat RtR = R.t() * R;
+  const arma::mat RtR = returns.t() * returns;
   subgradient = lambda2 * X0 - RtR + RtR * X0;
 
 };
@@ -335,12 +332,12 @@ void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveRidge() {
 void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclear() {
 
   // Rcpp::Rcout << "ComputeSubgradientMainObjectiveNuclear\n";
-  const arma::mat RtR = R.t() * R;
+  const arma::mat RtR = returns.t() * returns;
 
-  arma::svd(U, sv, V, R * X0);
+  arma::svd(U, sv, V, returns * X0);
 
-  subgradient = lambda1 * R.t() * U.head_cols(minNT) * V.head_cols(minNT).t() +
-    RtR * X0 - RtR;
+  subgradient = lambda1 * returns.t() * U.head_cols(minNT) *
+    V.head_cols(minNT).t() + RtR * X0 - RtR;
 
 }
 
@@ -350,7 +347,7 @@ void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclear() {
 void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearSmallN() {
 
   // Rcpp::Rcout << "ComputeSubgradientMainObjectiveNuclearSmallN\n";
-  const arma::mat RtR = R.t() * R;
+  const arma::mat RtR = returns.t() * returns;
 
   // compute qr(X'V)
   arma::mat Q, A;
@@ -362,7 +359,7 @@ void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearSmallN() {
 
   arma::svd(U1, sv1, V1, A * arma::diagmat(sv));
 
-  subgradient = lambda1 * R.t() * (U * V1) * (Q * U1).t() +
+  subgradient = lambda1 * returns.t() * (U * V1) * (Q * U1).t() +
     RtR * X0 - RtR;
 
 }
@@ -373,12 +370,12 @@ void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearSmallN() {
 void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearRidge() {
 
   // Rcpp::Rcout << "ComputeSubgradientMainObjectiveNuclearRidge\n";
-  const arma::mat RtR = R.t() * R;
+  const arma::mat RtR = returns.t() * returns;
 
-  arma::svd(U, sv, V, R * X0);
+  arma::svd(U, sv, V, returns * X0);
 
-  subgradient = lambda1 * R.t() * U.head_cols(minNT) * V.head_cols(minNT).t() +
-    lambda2 * X0 + RtR * X0 - RtR;
+  subgradient = lambda1 * returns.t() * U.head_cols(minNT) *
+    V.head_cols(minNT).t() + lambda2 * X0 + RtR * X0 - RtR;
 
 }
 
@@ -388,7 +385,7 @@ void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearRidge() {
 void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearRidgeSmallN() {
 
   // Rcpp::Rcout << "ComputeSubgradientMainObjectiveNuclearRidgeSmallN\n";
-  const arma::mat RtR = R.t() * R;
+  const arma::mat RtR = returns.t() * returns;
 
   // compute qr(X'V)
   arma::mat Q, A;
@@ -400,7 +397,7 @@ void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearRidgeSmallN() {
 
   arma::svd(U1, sv1, V1, A * arma::diagmat(sv));
 
-  subgradient = lambda1 * R.t() * (U * V1) * (Q * U1).t() +
+  subgradient = lambda1 * returns.t() * (U * V1) * (Q * U1).t() +
     lambda2 * X0 + RtR * X0 - RtR;
 
 }
@@ -412,7 +409,7 @@ void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearRidgeSmallN() {
 void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveAlternativeNuclear() {
 
   // Rcpp::Rcout << "ComputeSubgradientMainObjectiveAlternativeNuclear\n";
-  const arma::mat RtR = R.t() * R;
+  const arma::mat RtR = returns.t() * returns;
 
   arma::svd(U, sv, V, X0);
 
@@ -427,7 +424,7 @@ void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveAlternativeNuclear() {
 void MarkovitzRRRSolver::ComputeSubgradientMainObjectiveAlternativeNuclearRidge() {
 
   // Rcpp::Rcout << "ComputeSubgradientMainObjectiveAlternativeNuclearRidge\n";
-  const arma::mat RtR = R.t() * R;
+  const arma::mat RtR = returns.t() * returns;
 
   arma::svd(U, sv, V, X0);
 
@@ -469,8 +466,10 @@ double MarkovitzRRRSolver::ComputeStepSizeConstantStepLength() const {
 // compute square summable not summable step_size
 double MarkovitzRRRSolver::ComputeStepSizeModifiedPolyak() const {
 
-  return (step_size_constant + objective(iter - 1) -
-          arma::min(objective.head(iter))) / arma::norm(subgradient, "fro");
+  return (
+    step_size_constant + objective(iter - 1) -
+    arma::min(objective.head(iter))) / arma::norm(subgradient, "fro"
+  );
 
 };
 
@@ -493,47 +492,47 @@ std::function<double(void)> MarkovitzRRRSolver::SetObjectiveFunction(
   // default Nuclear penalty: `lambda1 * ||R * X||_*`
   case 'd': {
 
-    // if both `lambda1` and `lambda2` are greater than `0`,
-    // use both Nuclear and Ridge penalty
-    if ((lambda1 > 0.) & (lambda2 > 0.)) {
+  // if both `lambda1` and `lambda2` are greater than `0`,
+  // use both Nuclear and Ridge penalty
+  if ((lambda1 > 0.) & (lambda2 > 0.)) {
 
 
-      return static_cast<double>(N) / T >= .4 ?
-      std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclearRidge, this) :
-      std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclearRidgeSmallN, this);
+  return static_cast<double>(N) / T >= .4 ?
+  std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclearRidge, this) :
+  std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclearRidgeSmallN, this);
 
-    }
+}
 
-    // if only `lambda1 > 0`, use the Nuclear penalty
-    if (lambda1 > 0.) {
+  // if only `lambda1 > 0`, use the Nuclear penalty
+  if (lambda1 > 0.) {
 
-      return static_cast<double>(N) / T >= .4 ?
-      std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclear, this) :
-      std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclearSmallN, this);
-
-    }
-
-    // otherwise if only `lambda2 > 0`, use the Ridge penalty
-    return std::bind(
-      &MarkovitzRRRSolver::ComputeMainObjectiveRidge,
-      this
-    );
+    return static_cast<double>(N) / T >= .4 ?
+    std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclear, this) :
+    std::bind(&MarkovitzRRRSolver::ComputeMainObjectiveNuclearSmallN, this);
 
   }
 
-  // alternative Nuclear penalty: `lambda1 * ||X||_*`
+  // otherwise if only `lambda2 > 0`, use the Ridge penalty
+  return std::bind(
+    &MarkovitzRRRSolver::ComputeMainObjectiveRidge,
+    this
+  );
+
+}
+
+    // alternative Nuclear penalty: `lambda1 * ||X||_*`
   default: {
 
     // if both `lambda1` and `lambda2` are greater than `0`,
     // use both the alternative Nuclear and the Ridge penalty
     if ((lambda1 > 0.) & (lambda2 > 0.)) {
 
-      return std::bind(
-        &MarkovitzRRRSolver::ComputeMainObjectiveAlternativeNuclearRidge,
-        this
-      );
+    return std::bind(
+      &MarkovitzRRRSolver::ComputeMainObjectiveAlternativeNuclearRidge,
+      this
+    );
 
-    }
+  }
 
     // if only `lambda1 > 0`, use the alternative Nuclear penalty
     if (lambda1 > 0.) {
@@ -561,9 +560,9 @@ std::function<double(void)> MarkovitzRRRSolver::SetObjectiveFunction(
 // `'d'` for "default", i.e., `lambda1 ||R * X||_* + lambda2/2 ||X||_F^2`,
 // and `'a'` for "alternative", i.e., `lambda ||X||_* + lambda2/2 ||X||_F^2`.
 std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
-  const char penalty_type,
-  const double lambda1,
-  const double lambda2
+    const char penalty_type,
+    const double lambda1,
+    const double lambda2
 ) {
 
   switch (penalty_type) {
@@ -571,47 +570,47 @@ std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
   // default Nuclear penalty: `lambda1 * ||R * X||_*`
   case 'd': {
 
-    // if both `lambda1` and `lambda2` are greater than `0`,
-    // use both Nuclear and Ridge penalty
-    if ((lambda1 > 0.) & (lambda2 > 0.)) {
+  // if both `lambda1` and `lambda2` are greater than `0`,
+  // use both Nuclear and Ridge penalty
+  if ((lambda1 > 0.) & (lambda2 > 0.)) {
 
 
-      return static_cast<double>(N) / T >= .4 ?
-      std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearRidge, this) :
-      std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearRidgeSmallN, this);
+  return static_cast<double>(N) / T >= .4 ?
+  std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearRidge, this) :
+  std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearRidgeSmallN, this);
 
-    }
+}
 
-    // if only `lambda1 > 0`, use the Nuclear penalty
-    if (lambda1 > 0.) {
+  // if only `lambda1 > 0`, use the Nuclear penalty
+  if (lambda1 > 0.) {
 
-      return static_cast<double>(N) / T >= .4 ?
-      std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclear, this) :
-      std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearSmallN, this);
-
-    }
-
-    // otherwise if only `lambda2 > 0`, use the Ridge penalty
-    return std::bind(
-      &MarkovitzRRRSolver::ComputeSubgradientMainObjectiveRidge,
-      this
-    );
+    return static_cast<double>(N) / T >= .4 ?
+    std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclear, this) :
+    std::bind(&MarkovitzRRRSolver::ComputeSubgradientMainObjectiveNuclearSmallN, this);
 
   }
 
-  // alternative Nuclear penalty: `lambda1 * ||X||_*`
+  // otherwise if only `lambda2 > 0`, use the Ridge penalty
+  return std::bind(
+    &MarkovitzRRRSolver::ComputeSubgradientMainObjectiveRidge,
+    this
+  );
+
+}
+
+    // alternative Nuclear penalty: `lambda1 * ||X||_*`
   default: {
 
     // if both `lambda1` and `lambda2` are greater than `0`,
     // use both the alternative Nuclear and the Ridge penalty
     if ((lambda1 > 0.) & (lambda2 > 0.)) {
 
-      return std::bind(
-        &MarkovitzRRRSolver::ComputeSubgradientMainObjectiveAlternativeNuclearRidge,
-        this
-      );
+    return std::bind(
+      &MarkovitzRRRSolver::ComputeSubgradientMainObjectiveAlternativeNuclearRidge,
+      this
+    );
 
-    }
+  }
 
     // if only `lambda1 > 0`, use the alternative Nuclear penalty
     if (lambda1 > 0.) {
@@ -651,7 +650,7 @@ std::function<void(void)> MarkovitzRRRSolver::SetSubgradientFunction(
 // constant step size: `step_size = step_size_constant`.
 // default is `step_size_type` = 'd'.
 std::function<double(void)> MarkovitzRRRSolver::SetStepSizeFunction(
-  const char step_size_type
+    const char step_size_type
 ) const {
 
   switch (step_size_type) {
@@ -679,14 +678,16 @@ std::function<double(void)> MarkovitzRRRSolver::SetStepSizeFunction(
 // otherwise set it to `2./(min(sv(R))^2 + max(sv(R))^2)`, where `sv` denotes
 // singular values
 double MarkovitzRRRSolver::SetStepSizeConstant(
-  const double step_size_constant,
-  const double lambda2
+    const double step_size_constant,
+    const double lambda2
 ) const {
 
   if (step_size_constant > 0.) return step_size_constant;
 
-  const arma::vec svR = arma::svd(R);
-  return 2. / (svR(0) * svR(0) + svR(minNT - 1) * svR(minNT - 1) + lambda2);
+  const arma::vec sv_ret = arma::svd(returns);
+  return 2. / (
+    sv_ret(0) * sv_ret(0) + sv_ret(minNT - 1) * sv_ret(minNT - 1) + lambda2
+  );
 
 };
 

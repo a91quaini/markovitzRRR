@@ -19,7 +19,7 @@ private:
 
   //// data
   // returns
-  const arma::mat R;
+  const arma::mat& returns;
   // returns dimensions
   const unsigned int T;
   const unsigned int N;
@@ -35,9 +35,6 @@ private:
   // penalty parameter
   const double lambda1;
   const double lambda2;
-  // iterations
-  const unsigned int max_iter;
-  unsigned int iter;
   // objective function
   const std::function<double(void)> ComputeObjective;
   arma::rowvec objective;
@@ -51,6 +48,9 @@ private:
   // step size
   const double step_size_constant;
   const std::function<double(void)> ComputeStepSize;
+  // iterations
+  const unsigned int max_iter;
+  unsigned int iter;
   // tolerance
   const double tolerance;
   // solver status
@@ -63,8 +63,8 @@ public:
   // class constructor
 
   explicit MarkovitzRRRSolver(
-    const arma::mat& R,
-    const arma::mat& X0 = arma::mat(),
+    const arma::mat& returns,
+    const arma::mat& X0,
     const double lambda1 = 0.,
     const double lambda2 = 0.,
     const char penalty_type = 'd',
