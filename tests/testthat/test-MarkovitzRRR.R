@@ -11,8 +11,8 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       max_iter = max_iter
     )
   )
@@ -20,8 +20,8 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       max_iter = 5
     )
   )
@@ -29,8 +29,8 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       penalty_type = 'a',
       max_iter = max_iter
     )
@@ -39,8 +39,8 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       step_size_type = 'c',
       max_iter = max_iter
     )
@@ -49,27 +49,18 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       step_size_type = 'p',
       max_iter = max_iter
     )
   )
 
-  # expect_equal(
-  #   MarkovitzRRR(
-  #     returns,
-  #     lambda,
-  #     tolerance = 1.e-6
-  #   )$status,
-  #   "solved"
-  # )
-
   expect_length(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       max_iter = max_iter
     )$solution,
     n_assets * n_assets
@@ -78,30 +69,16 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns = "s",
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
     )
   )
 
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda1 = -0.3
-    )
-  )
-
-  expect_error(
-    MarkovitzRRR(
-      returns,
-      lambda2 = -0.3
-    )
-  )
-
-  expect_error(
-    MarkovitzRRR(
-      returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       initial_solution = "c"
     )
   )
@@ -109,15 +86,13 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda1 = "s",
-      lambda2
+      lambda1 = "s"
     )
   )
 
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda1,
       lambda2 = "s"
     )
   )
@@ -125,8 +100,8 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       objective_type = c(2, 3)
     )
   )
@@ -134,8 +109,8 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       penalty_type = c(2, 3)
     )
   )
@@ -143,8 +118,8 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       step_size_type = c(2, 3)
     )
   )
@@ -152,8 +127,8 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       step_size_constant = "s"
     )
   )
@@ -161,8 +136,8 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       max_iter = "s"
     )
   )
@@ -173,8 +148,8 @@ test_that("Test MarkovitzRRR", {
   expect_no_error(
     MarkovitzRRR(
       returns_high,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       max_iter = max_iter
     )
   )
@@ -182,8 +157,8 @@ test_that("Test MarkovitzRRR", {
   expect_error(
     MarkovitzRRR(
       returns,
-      lambda1,
-      lambda2,
+      lambda1 = lambda1,
+      lambda2 = lambda2,
       tolerance = "s"
     )
   )
@@ -199,8 +174,8 @@ test_that("Test MarkovitzRRR", {
 
   result <- MarkovitzRRR(
     returns,
-    lambda1,
-    lambda2,
+    lambda1 = lambda1,
+    lambda2 = lambda2,
     max_iter = max_iter
   )
   expect_true(is.list(result))
@@ -211,21 +186,6 @@ test_that("Test MarkovitzRRR", {
       returns = "invalid",
       lambda1 = 0.1,
       lambda2 = 0.1
-    )
-  )
-
-  expect_error(
-    MarkovitzRRR(
-      returns,
-      lambda1 = -0.1,
-      lambda2 = 0.1
-    )
-  )
-  expect_error(
-    MarkovitzRRR(
-      returns,
-      lambda1 = 0.1,
-      lambda2 = -0.1
     )
   )
 

@@ -7,9 +7,9 @@
 \usage{
 MarkovitzRRR(
   returns,
-  lambda1,
-  lambda2,
   initial_solution = matrix(0, 0, 0),
+  lambda1 = 0,
+  lambda2 = 0,
   penalty_type = "d",
   step_size_type = "d",
   step_size_constant = -1,
@@ -24,19 +24,21 @@ PlotMarkovitzRRRObjective(results)
 \item{returns}{\verb{n_observations x n_returns}-dimensional matrix of centred(!)
 test asset excess returns.}
 
+\item{initial_solution}{\verb{n_returns x n_returns}-dimensional matrix of initial
+hedging weights. If it is an empty matrix, then it is set to a hollow matrix
+(a matrix with zero diagonal) with \code{1/N} as off-diagonal elements.
+Default is \code{matrix(0, 0, 0)}.}
+
 \item{lambda1}{a number indicating the penalty parameter associated
 with the Nuclear penalty \verb{lambda1 * ||R * X||_*} or \verb{lambda1 * ||X||_*};
-see \code{penalty_type}.
+see \code{penalty_type}. Default is \code{0}.
 If it is less than or equal to zero, optimization is carried on without this
 penalty.}
 
 \item{lambda2}{a number indicating the penalty parameter associated
 with the Ridge penalty \verb{lambda2 * ||X||_F^2}.
 If it is less than or equal to zero, optimization is carried on without this
-penalty.}
-
-\item{initial_solution}{\verb{n_returns x n_returns}-dimensional matrix of initial
-hedging weights. Defaults is a hollow matrix with \code{1/N} as off-diagonal elements.}
+penalty. Default is \code{0}.}
 
 \item{penalty_type}{character indicating the type of penalty function: \code{'d'}
 for default, i.e., penalty given by \verb{||RX||_*}; \code{'a'} for alternative, i.e.,
@@ -73,9 +75,8 @@ markovitzRRR objective function values at each iteration.}
 }
 \value{
 a list containing: the optimal solution in \verb{$solution}; the optimal
-value in \verb{$objective}; the optimal portfolio weights in \verb{$weights}.
-if at least one of \code{lambda1} and \code{lambda2} is positive, then the list
-additionally contains: the number of iterations in \verb{$iterations};
+value in \verb{$objective}; the optimal portfolio weights in \verb{$weights}; the number
+of iterations in \verb{$iterations};
 the solver status check (indicating if the objective value decreased from the
 value at the initial value) in \verb{$is_improved}; the solver status
 check (indicating if the objective value at the last solution equal to
@@ -96,7 +97,7 @@ Plots the  MarkovitzRRR objective function value at each iteration
 }
 \examples{
 # Example usage with real data
-returns = markovitzRRR::returns[,-1]
+returns = markovitzRRR::returns[1:50,-1]
 result = MarkovitzRRR(returns, lambda1 = 0.1, lambda2 = 0.1)
 
 }

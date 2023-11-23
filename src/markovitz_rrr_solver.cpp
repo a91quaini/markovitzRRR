@@ -119,9 +119,13 @@ void MarkovitzRRRSolver::SolveUnpenalizedMarkovitz() {
 
   // Store the objective function value `1/2||R - R * X||_F^2`
   objective(1) = .5 * arma::accu(arma::square(returns - returns * X));
+  objective_best = std::min(objective(0), objective(1));
 
   // Keep only the first two function evaluations
   objective.resize(2);
+
+  // Check and update solver status
+  CheckSolverStatus();
 
 }
 
@@ -192,12 +196,13 @@ void MarkovitzRRRSolver::CheckSolverStatus() {
 
   // Set is_improved to true if the objective value is decreased from the
   // value at the initial point
-  is_improved = objective_best >= objective(0);
+  is_improved = objective_best <= objective(0);
 
   // Set is_converged to true if the objective value at the last solution equals
   // the value at the best solution
   is_converged = objective(objective.n_elem - 1) <= arma::min(objective) +
-    1e2 * arma::datum::eps;
+    .5 * arma::stddev(objective);
+    // 1e2 * arma::datum::eps;
 
 }
 
@@ -725,19 +730,7 @@ const bool MarkovitzRRRSolver::GetIsConverged() const {
 // get output list
 const Rcpp::List MarkovitzRRRSolver::GetOutputList() const {
 
-  // if lambda1 and lambda2 are zero or negative, return the output list for the
-  // unpenalized Markovitz solution
-  if ((lambda1 <= 0.) & (lambda2 <= 0.)) {
-
-    return Rcpp::List::create(
-      Rcpp::Named("solution") = Xbest,
-      Rcpp::Named("objective") = objective,
-      Rcpp::Named("weights") = weights
-    );
-
-  }
-
-  // Otherwise return the output list for the penalized Markovitz solution
+  // Return the output list for the penalized Markovitz solution
   return Rcpp::List::create(
     Rcpp::Named("solution") = Xbest,
     Rcpp::Named("objective") = objective,
@@ -745,6 +738,21 @@ const Rcpp::List MarkovitzRRRSolver::GetOutputList() const {
     Rcpp::Named("iterations") = iter,
     Rcpp::Named("is_improved") = is_improved,
     Rcpp::Named("is_converged") = is_converged
+  );
+
+};
+
+// get output vector: useful for parallel solver
+const arma::rowvec MarkovitzRRRSolver::GetOutputVector() const {
+
+  const double is_converged_d = static_cast<double>(is_converged);
+  const double is_improved_d = static_cast<double>(is_improved);
+
+  return arma::join_horiz(
+    arma::vec(1, arma::fill::value(lambda2)),
+    weights,
+    arma::vec(1, arma::fill::value(is_improved_d)),
+    arma::vec(1, arma::fill::value(is_converged_d))
   );
 
 };

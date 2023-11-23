@@ -107,3 +107,19 @@ print(mb)
 # print(summary(mb))
 print(boxplot(mb))
 
+
+
+returns = markovitzRRR::returns[,-1]
+lambda2_values = c(0.1, 0.2, 0.3)
+results = markovitzRRR::ParallelMarkovitzRRR(
+returns, initial_solution = matrix(0, 0, 0), lambda1 = 0.1, lambda2_values = lambda2_values, penalty_type = 'd'
+)
+result = markovitzRRR::MarkovitzRRR(
+  returns, initial_solution = matrix(0, 0, 0), lambda1 = 0.1, lambda2 = 0.3, penalty_type = 'd'
+)
+
+returns = markovitzRRR::returns[1:200,-1]
+lambda2_values = c(0.1, 0.2, 0.3)
+results = markovitzRRR::ParallelMarkovitzRRR(
+  returns, initial_solution = matrix(0, 0, 0), lambda1 = 0.1, lambda2_values = lambda2_values
+)

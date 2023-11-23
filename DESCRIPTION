@@ -18,6 +18,8 @@ LinkingTo:
     Rcpp,
     RcppArmadillo
 Imports: 
+    doParallel,
+    foreach,
     Rcpp
 Depends: 
     R (>= 2.10)

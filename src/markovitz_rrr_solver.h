@@ -176,6 +176,9 @@ public:
   // get output list
   const Rcpp::List GetOutputList() const;
 
+  // get output vector
+  const arma::rowvec GetOutputVector() const;
+
 };
 
 #endif

@@ -5,7 +5,7 @@ MarkovitzRRRCpp <- function(R, X0, lambda1 = 0., lambda2 = 0., penalty_type = 'd
     .Call(`_markovitzRRR_MarkovitzRRRCpp`, R, X0, lambda1, lambda2, penalty_type, step_size_type, step_size_constant, max_iter, tolerance)
 }
 
-MarkovitzRRRAltCpp <- function(R, tau, lambda = 0., max_iter = 10000L, tolerance = -1.) {
-    .Call(`_markovitzRRR_MarkovitzRRRAltCpp`, R, tau, lambda, max_iter, tolerance)
+ParallelMarkovitzRRRCpp <- function(returns, X0, lambda1 = 0., lambda2 = 0., penalty_type = 'd', step_size_type = 'd', step_size_constant = 0., max_iter = 10000L, tolerance = 0.) {
+    .Call(`_markovitzRRR_ParallelMarkovitzRRRCpp`, returns, X0, lambda1, lambda2, penalty_type, step_size_type, step_size_constant, max_iter, tolerance)
 }
 
