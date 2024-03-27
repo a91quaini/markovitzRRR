@@ -31,7 +31,7 @@ private:
   arma::mat X0;
   arma::mat Xbest;
   // optimal portfolio weights
-  arma::rowvec weights;
+  arma::vec weights;
   // penalty parameter
   const double lambda1;
   const double lambda2;
@@ -161,7 +161,7 @@ public:
   const arma::mat& GetSolution() const;
 
   // get the optimal portfolio weights
-  const arma::rowvec& GetWeights() const;
+  const arma::vec& GetWeights() const;
 
   // get number of iterations
   const unsigned int GetIterations() const;

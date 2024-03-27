@@ -218,7 +218,10 @@ void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
   // compute the unscaled optimal weights: Sigma^(-1)'1 where Sigma^(-1),
   // the inverse variance covariance matrix of returns, is computed via
   // the solution X and the marginal variances of the residuals
-  weights = arma::sum(arma::eye(N, N) - Xbest, 0) % inv_var_res;
+  weights = arma::sum(
+    arma::diagmat(inv_var_res) * (arma::eye(N, N) - Xbest), 1
+  );
+  // weights = arma::sum(arma::eye(N, N) - Xbest, 0) % inv_var_res;
 
   // Compute the sum of the weights
   const double weights_sum = arma::accu(weights);
@@ -710,7 +713,7 @@ const arma::mat& MarkovitzRRRSolver::GetSolution() const {
 };
 
 // get the optimal portfolio weights
-const arma::rowvec& MarkovitzRRRSolver::GetWeights() const {
+const arma::vec& MarkovitzRRRSolver::GetWeights() const {
   return weights;
 };
 

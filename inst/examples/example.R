@@ -109,17 +109,51 @@ print(boxplot(mb))
 
 
 
-returns = markovitzRRR::returns[,-1]
-lambda2_values = c(0.1, 0.2, 0.3)
-results = markovitzRRR::ParallelMarkovitzRRR(
-returns, initial_solution = matrix(0, 0, 0), lambda1 = 0.1, lambda2_values = lambda2_values, penalty_type = 'd'
-)
-result = markovitzRRR::MarkovitzRRR(
-  returns, initial_solution = matrix(0, 0, 0), lambda1 = 0.1, lambda2 = 0.3, penalty_type = 'd'
-)
+returns = markovitzRRR::returns[1:200,2:15]
+n_penalty_parameters = 10
+lower_penalty_parameter = 1. / nrow(returns)^2
+upper_penalty_parameter = 1.5
+lambda2_values = c(exp(seq(
+  from=log(lower_penalty_parameter),
+  to=log(upper_penalty_parameter),
+  length.out=n_penalty_parameters
+)))
 
-returns = markovitzRRR::returns[1:200,-1]
-lambda2_values = c(0.1, 0.2, 0.3)
+
+start_time <- Sys.time()
 results = markovitzRRR::ParallelMarkovitzRRR(
   returns, initial_solution = matrix(0, 0, 0), lambda1 = 0.1, lambda2_values = lambda2_values
 )
+end_time <- Sys.time()
+writeLines(paste("Parallel Computation time =", end_time - start_time))
+
+start_time <- Sys.time()
+for (i in seq_along(lambda2_values)) {
+
+  result = markovitzRRR::MarkovitzRRR(
+    returns, initial_solution = matrix(0, 0, 0), lambda1 = 0.1, lambda2 = lambda2_values[i]
+  )
+
+}
+end_time <- Sys.time()
+writeLines(paste("Computation time =", end_time - start_time))
+
+
+res = MarkovitzRRR(
+  returns,
+  lambda1=0.1,
+  lambda2=0.,
+  penalty_type = 'd',
+  step_size_type = 'c',
+  step_size_constant = -1.,
+  max_iter = 100,
+  tolerance = -1e-12
+)
+X = res$solution
+E <- (returns - returns %*% X)
+Psi <- 1 / pmax(apply(E, 2, var), .Machine$double.eps)
+theta <- diag(Psi) %*% (diag(n_assets) - X)
+one <- matrix(1, n_assets, 1)
+denom <- as.numeric(t(one) %*% theta %*% one)
+weightsGMV <- (theta %*% one) / denom
+weightsGMV - res$weights
