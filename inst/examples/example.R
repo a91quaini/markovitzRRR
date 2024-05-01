@@ -38,6 +38,17 @@ markovitzRRR_function = function() {
     max_iter = 100,
     tolerance = -1e-12
   ))
+  return(ParallelMarkovitzRRR(
+    returns,
+    initial_solution = matrix(0,0,0),
+    lambda1=0.1,
+    lambda2=0.,
+    penalty_type = 'd',
+    step_size_type = 'c',
+    step_size_constant = -1.,
+    max_iter = 100,
+    tolerance = -1e-12
+  ))
 }
 
 # markovitzRRRalt_function = function() {

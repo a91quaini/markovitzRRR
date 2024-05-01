@@ -7,9 +7,9 @@
 \usage{
 ParallelMarkovitzRRR(
   returns,
-  initial_solution,
-  lambda1,
-  lambda2_values,
+  initial_solution = matrix(0, 0, 0),
+  lambda1 = 0,
+  lambda2_values = 0,
   penalty_type = "d",
   step_size_type = "d",
   step_size_constant = 0,
@@ -24,15 +24,17 @@ ParallelMarkovitzRRR(
 test asset excess returns.}
 
 \item{initial_solution}{\verb{n_returns x n_returns}-dimensional matrix of initial hedging weights.
-Defaults to a hollow matrix with \code{1/N} as off-diagonal elements.}
+Defaults to a hollow matrix with \code{1/N} as off-diagonal elements.
+Default is \code{matrix(0, 0, 0)}.}
 
 \item{lambda1}{a number indicating the penalty parameter associated
 with the Nuclear penalty \verb{lambda1 * ||R * X||_*} or \verb{lambda1 * ||X||_*};
-see \code{penalty_type}. If less than or equal to zero, optimization is carried on without this penalty.}
+see \code{penalty_type}. If less than or equal to zero, optimization is carried on without this penalty.
+default is \code{0}.}
 
 \item{lambda2_values}{a vector of numbers indicating the multiple values of the
 Ridge penalty parameter \verb{lambda2 * ||X||_F^2}. Each value of lambda2 is used in
-a separate optimization problem solved in parallel.}
+a separate optimization problem solved in parallel. default is \code{0}.}
 
 \item{penalty_type}{character indicating the type of penalty function: \code{'d'} for
 default, i.e., penalty given by \verb{||RX||_*}; \code{'a'} for alternative, i.e., penalty

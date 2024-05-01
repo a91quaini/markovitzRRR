@@ -142,7 +142,7 @@ Rcpp::List MarkovitzRRRCpp(
 // )
 //
 // [[Rcpp::export]]
-arma::rowvec ParallelMarkovitzRRRCpp(
+arma::vec ParallelMarkovitzRRRCpp(
   const arma::mat& returns,
   arma::mat& X0,
   const double lambda1 = 0.,

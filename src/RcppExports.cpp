@@ -31,7 +31,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // ParallelMarkovitzRRRCpp
-arma::rowvec ParallelMarkovitzRRRCpp(const arma::mat& returns, arma::mat& X0, const double lambda1, const double lambda2, const char penalty_type, const char step_size_type, const double step_size_constant, const unsigned int max_iter, const double tolerance);
+arma::vec ParallelMarkovitzRRRCpp(const arma::mat& returns, arma::mat& X0, const double lambda1, const double lambda2, const char penalty_type, const char step_size_type, const double step_size_constant, const unsigned int max_iter, const double tolerance);
 RcppExport SEXP _markovitzRRR_ParallelMarkovitzRRRCpp(SEXP returnsSEXP, SEXP X0SEXP, SEXP lambda1SEXP, SEXP lambda2SEXP, SEXP penalty_typeSEXP, SEXP step_size_typeSEXP, SEXP step_size_constantSEXP, SEXP max_iterSEXP, SEXP toleranceSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

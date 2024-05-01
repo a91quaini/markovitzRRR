@@ -136,12 +136,14 @@ MarkovitzRRR = function(
 #' test asset excess returns.
 #' @param initial_solution `n_returns x n_returns`-dimensional matrix of initial hedging weights.
 #' Defaults to a hollow matrix with `1/N` as off-diagonal elements.
+#' Default is `matrix(0, 0, 0)`.
 #' @param lambda1 a number indicating the penalty parameter associated
 #' with the Nuclear penalty `lambda1 * ||R * X||_*` or `lambda1 * ||X||_*`;
 #' see `penalty_type`. If less than or equal to zero, optimization is carried on without this penalty.
+#' default is `0`.
 #' @param lambda2_values a vector of numbers indicating the multiple values of the
 #' Ridge penalty parameter `lambda2 * ||X||_F^2`. Each value of lambda2 is used in
-#' a separate optimization problem solved in parallel.
+#' a separate optimization problem solved in parallel. default is `0`.
 #' @param penalty_type character indicating the type of penalty function: `'d'` for
 #' default, i.e., penalty given by `||RX||_*`; `'a'` for alternative, i.e., penalty
 #' given by `||X||_*`. Default is `'d'`.
@@ -186,9 +188,9 @@ MarkovitzRRR = function(
 #' @export
 ParallelMarkovitzRRR = function(
   returns,
-  initial_solution,
-  lambda1,
-  lambda2_values,
+  initial_solution = matrix(0, 0, 0),
+  lambda1 = 0.,
+  lambda2_values = 0.,
   penalty_type = 'd',
   step_size_type = 'd',
   step_size_constant = 0.,
@@ -224,7 +226,7 @@ ParallelMarkovitzRRR = function(
   # parallelized for loop
   output = foreach::foreach(
     idx = seq_along(lambda2_values),
-    .combine = 'rbind',
+    .combine = 'cbind',
     .packages = c('Rcpp')
     # ) %do% {}
   ) %dopar% {
@@ -248,8 +250,8 @@ ParallelMarkovitzRRR = function(
   parallel::stopCluster(cluster)
 
   # name columns in output
-  colnames(output) = c(
-    "lambda2",
+  rownames(output) = c(
+    "lambdaF",
     paste(
       rep("w", ncol(returns)),
       1:ncol(returns),
@@ -260,7 +262,7 @@ ParallelMarkovitzRRR = function(
   )
 
   # return output
-  return(output)
+  return(t(output))
 
 }
 

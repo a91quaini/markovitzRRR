@@ -746,12 +746,22 @@ const Rcpp::List MarkovitzRRRSolver::GetOutputList() const {
 };
 
 // get output vector: useful for parallel solver
-const arma::rowvec MarkovitzRRRSolver::GetOutputVector() const {
+const arma::vec MarkovitzRRRSolver::GetOutputVector() const {
 
   const double is_converged_d = static_cast<double>(is_converged);
   const double is_improved_d = static_cast<double>(is_improved);
+  // Rcpp::Rcout << "first:\n";
+  // Rcpp::Rcout << arma::vec(1, arma::fill::value(lambda2)) << "\n";
+  // Rcpp::Rcout << "second:\n";
+  // Rcpp::Rcout << weights << "\n";
+  // Rcpp::Rcout << "third:\n";
+  // Rcpp::Rcout << arma::vec(1, arma::fill::value(is_improved_d)) << "\n";
+  // Rcpp::Rcout << "fourth:\n";
+  // Rcpp::Rcout << arma::vec(1, arma::fill::value(is_converged_d)) << "\n";
 
-  return arma::join_horiz(
+  // return weights;
+
+  return arma::join_vert(
     arma::vec(1, arma::fill::value(lambda2)),
     weights,
     arma::vec(1, arma::fill::value(is_improved_d)),

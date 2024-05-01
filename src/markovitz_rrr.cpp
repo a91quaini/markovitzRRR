@@ -54,7 +54,7 @@ Rcpp::List MarkovitzRRRCpp(
 ////////////////////////////////////////
 ////// ParallelMarkovitzRRRCpp /////////
 
-arma::rowvec ParallelMarkovitzRRRCpp(
+arma::vec ParallelMarkovitzRRRCpp(
   const arma::mat& returns,
   arma::mat& X0,
   const double lambda1,
