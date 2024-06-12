@@ -225,7 +225,7 @@ void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
   // Compute the sum of the weights
   const double weights_sum = arma::accu(weights);
 
-  // Project weights into the unit simplex
+  // Make sure weights sum to one
   if (weights_sum != 0) weights /= weights_sum;
 
 };
