@@ -243,8 +243,8 @@ void MarkovitzRRRSolver::ComputeMaxSharpeRatioPortfolioWeights() {
     arma::datum::eps * 2.0
   );
 
-  // compute the mean of the asset returns using their mimicking portfolios
-  const arma::rowvec ret_mean = arma::mean(returns) * Xbest;
+  // compute the mean of returns
+  const arma::rowvec mean_returns = arma::mean(returns) * Xbest;
 
   // compute the unscaled optimal weights: Sigma^(-1)'1 where Sigma^(-1),
   // the inverse variance covariance matrix of returns, is computed via
@@ -252,14 +252,14 @@ void MarkovitzRRRSolver::ComputeMaxSharpeRatioPortfolioWeights() {
   // Note: the solution `Xbest` is the transpose of the coefficient matrix
   // in Stevens 1998 <doi:org/10.1111/0022-1082.00074>
   // (as we use matrix notation)
-  sr_weights = (arma::diagmat(inv_var_res) - Xbest) * ret_mean.t();
+  sr_weights = (arma::diagmat(inv_var_res) - Xbest) * mean_returns.t();
 
   // Compute the sum of the weights
   const double weights_sum = arma::accu(sr_weights);
 
   // Make sure weights sum to one
   if (weights_sum != 0) sr_weights /= std::max(
-    weights_sum,
+    std::abs(weights_sum),
     arma::datum::eps * 2.0
   );;
 
