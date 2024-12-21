@@ -32,6 +32,7 @@ private:
   arma::mat Xbest;
   // optimal portfolio weights
   arma::vec weights;
+  arma::vec sr_weights;
   // penalty parameter
   const double lambda1;
   const double lambda2;
@@ -91,6 +92,7 @@ public:
 
   // compute the optimal portfolio weights
   void ComputeOptimalPortfolioWeights();
+  void ComputeMaxSharpeRatioPortfolioWeights();
 
   // Check solver status:
   // is the objective value decreased from the value at the initial value?
@@ -162,6 +164,7 @@ public:
 
   // get the optimal portfolio weights
   const arma::vec& GetWeights() const;
+  const arma::vec& GetSRWeights() const;
 
   // get number of iterations
   const unsigned int GetIterations() const;

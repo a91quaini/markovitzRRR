@@ -61,9 +61,8 @@ void MarkovitzRRRSolver::Solve() {
 
     // If tolerance > 0, then compute a stop rule based on the Frobenius
     // distance between consecutive solutions
-    if (
-        (tolerance > 0) &&
-          (arma::norm(X - X0, "fro") / static_cast<double>(N) <= tolerance)
+    if ((tolerance > 0) &&
+        (arma::norm(X - X0, "fro") / static_cast<double>(N) <= tolerance)
     ) break;
 
     // Until the number of iterations hits the maximum number
@@ -71,6 +70,7 @@ void MarkovitzRRRSolver::Solve() {
 
   // Compute optimal portfolio weights
   ComputeOptimalPortfolioWeights();
+  ComputeMaxSharpeRatioPortfolioWeights();
 
   // Check and update solver status
   CheckSolverStatus();
@@ -220,13 +220,48 @@ void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
   // the solution X and the marginal variances of the residuals
   // Note: the solution `Xbest` is the transpose of the coefficient matrix
   // in Stevens 1998 <doi:org/10.1111/0022-1082.00074>
-  weights = arma::trans(arma::sum(arma::eye(N, N) - Xbest, 0) % inv_var_res);
+  // (as we use matrix notation)
+  weights = arma::trans(arma::sum(arma::diagmat(inv_var_res) - Xbest, 0));
 
   // Compute the sum of the weights
   const double weights_sum = arma::accu(weights);
 
   // Make sure weights sum to one
-  if (weights_sum != 0) weights /= weights_sum;
+  if (weights_sum != 0) weights /= std::max(
+    weights_sum,
+    arma::datum::eps * 2.0
+  );;
+
+};
+
+// compute the optimal sharpe ratio portfolio weights
+void MarkovitzRRRSolver::ComputeMaxSharpeRatioPortfolioWeights() {
+
+  // Compute the inverse of the variances of residuals
+  const arma::rowvec inv_var_res = 1.0 / arma::max(
+    arma::var(returns - returns * Xbest),
+    arma::datum::eps * 2.0
+  );
+
+  // compute the mean of the asset returns using their mimicking portfolios
+  const arma::rowvec ret_mean = arma::mean(returns) * Xbest;
+
+  // compute the unscaled optimal weights: Sigma^(-1)'1 where Sigma^(-1),
+  // the inverse variance covariance matrix of returns, is computed via
+  // the solution X and the marginal variances of the residuals
+  // Note: the solution `Xbest` is the transpose of the coefficient matrix
+  // in Stevens 1998 <doi:org/10.1111/0022-1082.00074>
+  // (as we use matrix notation)
+  sr_weights = (arma::diagmat(inv_var_res) - Xbest) * ret_mean.t();
+
+  // Compute the sum of the weights
+  const double weights_sum = arma::accu(sr_weights);
+
+  // Make sure weights sum to one
+  if (weights_sum != 0) sr_weights /= std::max(
+    weights_sum,
+    arma::datum::eps * 2.0
+  );;
 
 };
 
@@ -716,6 +751,11 @@ const arma::vec& MarkovitzRRRSolver::GetWeights() const {
   return weights;
 };
 
+const arma::vec& MarkovitzRRRSolver::GetSRWeights() const {
+  return sr_weights;
+};
+
+
 // get number of iterations
 const unsigned int MarkovitzRRRSolver::GetIterations() const {
   return iter;
@@ -737,6 +777,7 @@ const Rcpp::List MarkovitzRRRSolver::GetOutputList() const {
     Rcpp::Named("solution") = Xbest,
     Rcpp::Named("objective") = objective,
     Rcpp::Named("weights") = weights,
+    Rcpp::Named("sr_weights") = sr_weights,
     Rcpp::Named("iterations") = iter,
     Rcpp::Named("is_improved") = is_improved,
     Rcpp::Named("is_converged") = is_converged
@@ -762,7 +803,7 @@ const arma::vec MarkovitzRRRSolver::GetOutputVector() const {
 
   return arma::join_vert(
     arma::vec(1, arma::fill::value(lambda2)),
-    weights,
+    arma::join_vert(weights, sr_weights),
     arma::vec(1, arma::fill::value(is_improved_d)),
     arma::vec(1, arma::fill::value(is_converged_d))
   );
