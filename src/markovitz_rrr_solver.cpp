@@ -261,7 +261,7 @@ void MarkovitzRRRSolver::ComputeMaxSharpeRatioPortfolioWeights() {
   if (weights_sum != 0) sr_weights /= std::max(
     std::abs(weights_sum),
     arma::datum::eps * 2.0
-  );;
+  );
 
 };
 
