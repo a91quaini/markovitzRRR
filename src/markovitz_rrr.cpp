@@ -54,7 +54,7 @@ Rcpp::List MarkovitzRRRCpp(
 ////////////////////////////////////////
 ////// ParallelMarkovitzRRRCpp /////////
 
-arma::vec ParallelMarkovitzRRRCpp(
+Rcpp::List ParallelMarkovitzRRRCpp(
   const arma::mat& returns,
   arma::mat& X0,
   const double lambda1,
@@ -94,7 +94,7 @@ arma::vec ParallelMarkovitzRRRCpp(
   solver.Solve();
 
   // return output list
-  return solver.GetOutputVector();
+  return solver.GetOutputList();
 
 }
 

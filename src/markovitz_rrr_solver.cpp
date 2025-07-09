@@ -20,6 +20,9 @@ N(returns.n_cols),
 minNT(std::min(N, T)),
 X(X0),
 Xbest(X0),
+Precision(X0),
+weights(N),
+sr_weights(N),
 lambda1(lambda1),
 lambda2(lambda2),
 ComputeObjective(SetObjectiveFunction(penalty_type, lambda1, lambda2)),
@@ -67,6 +70,9 @@ void MarkovitzRRRSolver::Solve() {
 
     // Until the number of iterations hits the maximum number
   };
+
+  // Compute the precision matrix of returns
+  ComputePrecisionMatrix();
 
   // Compute optimal portfolio weights
   ComputeOptimalPortfolioWeights();
@@ -206,8 +212,8 @@ void MarkovitzRRRSolver::CheckSolverStatus() {
 
 }
 
-// compute the optimal portfolio weights
-void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
+// compute the precision matrix of returns
+void MarkovitzRRRSolver::ComputePrecisionMatrix() {
 
   // Compute the inverse of the variances of residuals
   const arma::rowvec inv_var_res = 1.0 / arma::max(
@@ -215,13 +221,23 @@ void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
     arma::datum::eps * 2.0
   );
 
+  // compute the precision matrix
+  // Note: the solution `Xbest` is the transpose of the coefficient matrix
+  // in Stevens 1998 <doi:org/10.1111/0022-1082.00074>
+  Precision = arma::diagmat(inv_var_res) * (arma::eye<arma::mat>(N, N) - Xbest.t());
+
+}
+
+// compute the optimal portfolio weights
+void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
+
   // compute the unscaled optimal weights: Sigma^(-1)'1 where Sigma^(-1),
   // the inverse variance covariance matrix of returns, is computed via
   // the solution X and the marginal variances of the residuals
-  // Note: the solution `Xbest` is the transpose of the coefficient matrix
-  // in Stevens 1998 <doi:org/10.1111/0022-1082.00074>
   // (as we use matrix notation)
-  weights = arma::trans(arma::sum(arma::diagmat(inv_var_res) - Xbest, 0));
+  weights = Precision.t() * arma::ones<arma::colvec>(N);
+  // old codes:
+  // weights = arma::trans(arma::sum(arma::diagmat(inv_var_res) - Xbest, 0));
 
   // Compute the sum of the weights
   const double weights_sum = arma::accu(weights);
@@ -237,22 +253,14 @@ void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
 // compute the optimal sharpe ratio portfolio weights
 void MarkovitzRRRSolver::ComputeMaxSharpeRatioPortfolioWeights() {
 
-  // Compute the inverse of the variances of residuals
-  const arma::rowvec inv_var_res = 1.0 / arma::max(
-    arma::var(returns - returns * Xbest),
-    arma::datum::eps * 2.0
-  );
+  // set vector of ones
+  const arma::colvec ones = arma::ones<arma::colvec>(N);
 
   // compute the mean of returns
   const arma::rowvec mean_returns = arma::mean(returns) * Xbest;
 
-  // compute the unscaled optimal weights: Sigma^(-1)'1 where Sigma^(-1),
-  // the inverse variance covariance matrix of returns, is computed via
-  // the solution X and the marginal variances of the residuals
-  // Note: the solution `Xbest` is the transpose of the coefficient matrix
-  // in Stevens 1998 <doi:org/10.1111/0022-1082.00074>
-  // (as we use matrix notation)
-  sr_weights = (arma::diagmat(inv_var_res) - Xbest) * mean_returns.t();
+  // compute the unscaled optimal weights: Sigma^(-1)'mu
+  sr_weights = Precision.t() * mean_returns.t();
 
   // Compute the sum of the weights
   const double weights_sum = arma::accu(sr_weights);
@@ -746,6 +754,11 @@ const arma::mat& MarkovitzRRRSolver::GetSolution() const {
   return Xbest;
 };
 
+// get precision matrix
+const arma::mat& MarkovitzRRRSolver::GetPrecisionMatrix() const {
+  return Precision;
+};
+
 // get the optimal portfolio weights
 const arma::vec& MarkovitzRRRSolver::GetWeights() const {
   return weights;
@@ -775,6 +788,7 @@ const Rcpp::List MarkovitzRRRSolver::GetOutputList() const {
   // Return the output list for the penalized Markovitz solution
   return Rcpp::List::create(
     Rcpp::Named("solution") = Xbest,
+    Rcpp::Named("precision") = Precision,
     Rcpp::Named("objective") = objective,
     Rcpp::Named("weights") = weights,
     Rcpp::Named("sr_weights") = sr_weights,

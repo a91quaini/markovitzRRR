@@ -30,6 +30,8 @@ private:
   arma::mat X;
   arma::mat X0;
   arma::mat Xbest;
+  // Precision matrix, inverse variance-covariance matrix of returns
+  arma::mat Precision;
   // optimal portfolio weights
   arma::vec weights;
   arma::vec sr_weights;
@@ -89,6 +91,9 @@ public:
 
   // set the X0 matrix to an hollow matrix with 1/N in the off-diagonal
   void SetX0ToHollow1OverN();
+
+  // compute the precision matrix of returns
+  void ComputePrecisionMatrix();
 
   // compute the optimal portfolio weights
   void ComputeOptimalPortfolioWeights();
@@ -161,6 +166,9 @@ public:
 
   // get the solver solution
   const arma::mat& GetSolution() const;
+
+  // get the solver solution
+  const arma::mat& GetPrecisionMatrix() const;
 
   // get the optimal portfolio weights
   const arma::vec& GetWeights() const;
