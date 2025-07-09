@@ -10,8 +10,8 @@
 set.seed(2)
 
 # Simulate asset returns
-n_assets <- 20
-n_obs <- 100
+n_assets <- 295
+n_obs <- 250
 mean_returns = rep(0, n_assets)
 variance_returns = diag(1., n_assets)
 returns = MASS::mvrnorm(n_obs, mean_returns, variance_returns)
@@ -42,7 +42,7 @@ markovitzRRR_function = function() {
     returns,
     initial_solution = matrix(0,0,0),
     lambda1=0.1,
-    lambda2=0.,
+    lambda2=0.0,
     penalty_type = 'd',
     step_size_type = 'c',
     step_size_constant = -1.,

@@ -57,7 +57,8 @@
 #' @param check_arguments boolean `TRUE` if you want to check function arguments;
 #' `FALSE` otherwise. Default is `TRUE`.
 #'
-#' @return a list containing: the optimal solution in `$solution`; the optimal
+#' @return a list containing: the optimal solution in `$solution`;
+#' the estimated precision matrix in `$precision`; the optimal
 #' value in `$objective`; the optimal portfolio weights in `$weights`; the number
 #' of iterations in `$iterations`;
 #' the solver status check (indicating if the objective value decreased from the
@@ -167,11 +168,14 @@ MarkovitzRRR = function(
 #' @param check_arguments boolean `TRUE` if you want to check function arguments;
 #' `FALSE` otherwise. Default is `TRUE`.
 #'
-#' @return a matrix with columns: `lambda2` value of `lambda2`; N columns `wi` where
-#' `i=1,...,N` are the optimal portfolio weights for asset `i`; `is_improved`
-#' showing if the objective value decreased from the initial value; `is_converged`
-#' indicating if the objective value at the last solution equals the value at
-#' the best solution.
+#' @return a list containing: the optimal solution in `$solution`;
+#' the estimated precision matrix in `$precision`; the optimal
+#' value in `$objective`; the optimal portfolio weights in `$weights`; the number
+#' of iterations in `$iterations`;
+#' the solver status check (indicating if the objective value decreased from the
+#' value at the initial value) in `$is_improved`; the solver status
+#' check (indicating if the objective value at the last solution equal to
+#' the value at the best solution?) in `$is_converged`.
 #'
 #' @examples
 #' # Example usage with real data and multiple lambda2 values
@@ -254,6 +258,11 @@ ParallelMarkovitzRRR = function(
     "lambdaF",
     paste(
       rep("w", ncol(returns)),
+      1:ncol(returns),
+      sep=""
+    ),
+    paste(
+      rep("sr_w", ncol(returns)),
       1:ncol(returns),
       sep=""
     ),
