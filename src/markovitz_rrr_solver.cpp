@@ -20,7 +20,7 @@ N(returns.n_cols),
 minNT(std::min(N, T)),
 X(X0),
 Xbest(X0),
-Precision(X0),
+Precision(N,N),
 weights(N),
 sr_weights(N),
 lambda1(lambda1),
@@ -75,8 +75,8 @@ void MarkovitzRRRSolver::Solve() {
   ComputePrecisionMatrix();
 
   // Compute optimal portfolio weights
-  ComputeOptimalPortfolioWeights();
-  ComputeMaxSharpeRatioPortfolioWeights();
+  // ComputeOptimalPortfolioWeights();
+  // ComputeMaxSharpeRatioPortfolioWeights();
 
   // Check and update solver status
   CheckSolverStatus();
@@ -235,7 +235,7 @@ void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
   // the inverse variance covariance matrix of returns, is computed via
   // the solution X and the marginal variances of the residuals
   // (as we use matrix notation)
-  weights = Precision.t() * arma::ones<arma::colvec>(N);
+  weights = Precision * arma::ones<arma::colvec>(N);
   // old codes:
   // weights = arma::trans(arma::sum(arma::diagmat(inv_var_res) - Xbest, 0));
 
@@ -246,7 +246,7 @@ void MarkovitzRRRSolver::ComputeOptimalPortfolioWeights() {
   if (weights_sum != 0) weights /= std::max(
     weights_sum,
     arma::datum::eps * 2.0
-  );;
+  );
 
 };
 
@@ -790,9 +790,9 @@ const Rcpp::List MarkovitzRRRSolver::GetOutputList() const {
     Rcpp::Named("solution") = Xbest,
     Rcpp::Named("precision") = Precision,
     Rcpp::Named("objective") = objective,
-    Rcpp::Named("weights") = weights,
-    Rcpp::Named("sr_weights") = sr_weights,
-    Rcpp::Named("iterations") = iter,
+    // Rcpp::Named("weights") = weights,
+    // Rcpp::Named("sr_weights") = sr_weights,
+    // Rcpp::Named("iterations") = iter,
     Rcpp::Named("is_improved") = is_improved,
     Rcpp::Named("is_converged") = is_converged
   );
