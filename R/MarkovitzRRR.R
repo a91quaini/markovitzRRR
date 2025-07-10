@@ -228,7 +228,7 @@ ParallelMarkovitzRRR = function(
   doParallel::registerDoParallel(cluster)
 
   # 1 C++ call per lambda2; each returns a list with 'solution' & 'precision'
-  results <- foreach(
+  results <- foreach::foreach(
     idx = seq_len(length(lambda2_values)),
     .packages = "markovitzRRR"
   ) %dopar% {
