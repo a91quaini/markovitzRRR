@@ -74,7 +74,8 @@ If \code{tolerance <= 0}, no check is performed. Default is \code{0}.}
 markovitzRRR objective function values at each iteration.}
 }
 \value{
-a list containing: the optimal solution in \verb{$solution}; the optimal
+a list containing: the optimal solution in \verb{$solution};
+the estimated precision matrix in \verb{$precision}; the optimal
 value in \verb{$objective}; the optimal portfolio weights in \verb{$weights}; the number
 of iterations in \verb{$iterations};
 the solver status check (indicating if the objective value decreased from the

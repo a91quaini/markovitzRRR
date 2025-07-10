@@ -66,11 +66,14 @@ Default is \code{0}.}
 \code{FALSE} otherwise. Default is \code{TRUE}.}
 }
 \value{
-a matrix with columns: \code{lambda2} value of \code{lambda2}; N columns \code{wi} where
-\verb{i=1,...,N} are the optimal portfolio weights for asset \code{i}; \code{is_improved}
-showing if the objective value decreased from the initial value; \code{is_converged}
-indicating if the objective value at the last solution equals the value at
-the best solution.
+a list containing: the optimal solution in \verb{$solution};
+the estimated precision matrix in \verb{$precision}; the optimal
+value in \verb{$objective}; the optimal portfolio weights in \verb{$weights}; the number
+of iterations in \verb{$iterations};
+the solver status check (indicating if the objective value decreased from the
+value at the initial value) in \verb{$is_improved}; the solver status
+check (indicating if the objective value at the last solution equal to
+the value at the best solution?) in \verb{$is_converged}.
 }
 \description{
 This function computes Markovitz optimal portfolios via Reduced Rank

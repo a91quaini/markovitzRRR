@@ -227,16 +227,13 @@ ParallelMarkovitzRRR = function(
   )
   doParallel::registerDoParallel(cluster)
 
-  # parallelized for loop
-  output = foreach::foreach(
-    idx = seq_along(lambda2_values),
-    .combine = 'cbind',
-    .packages = c('Rcpp')
-    # ) %do% {}
+  # 1 C++ call per lambda2; each returns a list with 'solution' & 'precision'
+  results <- foreach(
+    idx = seq_len(length(lambda2_values)),
+    .packages = "markovitzRRR"
   ) %dopar% {
-
-    # Compute the Markovitz RRR solutions
-    .Call(`_markovitzRRR_ParallelMarkovitzRRRCpp`,
+    L <- .Call(
+      `_markovitzRRR_ParallelMarkovitzRRRCpp`,
       returns,
       initial_solution,
       lambda1,
@@ -247,31 +244,32 @@ ParallelMarkovitzRRR = function(
       max_iter,
       tolerance
     )
-
+    # keep only what we need
+    list(
+      lambda2    = lambda2_values[idx],
+      solution   = L$solution,
+      precision  = L$precision
+    )
   }
 
-  # Close parallel cluster
   parallel::stopCluster(cluster)
 
-  # name columns in output
-  rownames(output) = c(
-    "lambdaF",
-    paste(
-      rep("w", ncol(returns)),
-      1:ncol(returns),
-      sep=""
-    ),
-    paste(
-      rep("sr_w", ncol(returns)),
-      1:ncol(returns),
-      sep=""
-    ),
-    "is_improved",
-    "is_converged"
-  )
+  N <- ncol(returns)
 
-  # return output
-  return(t(output))
+  # build N×N×K arrays
+  sol_array  <- simplify2array(lapply(results, `[[`, "solution"))
+  prec_array <- simplify2array(lapply(results, `[[`, "precision"))
+
+  # name the 3rd dimension with the lambda2 values
+  lambda2s <- sapply(results, `[[`, "lambda2")
+  dimnames(sol_array)[[3]]  <- lambda2s
+  dimnames(prec_array)[[3]] <- lambda2s
+
+  return(list(
+    lambda2   = lambda2s,
+    solution  = sol_array,   # N x N x K
+    precision = prec_array   # N x N x K
+  ))
 
 }
 

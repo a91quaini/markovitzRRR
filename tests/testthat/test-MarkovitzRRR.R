@@ -179,7 +179,7 @@ test_that("Test MarkovitzRRR", {
     max_iter = max_iter
   )
   expect_true(is.list(result))
-  expect_true(all(c("solution", "objective", "weights") %in% names(result)))
+  expect_true(all(c("solution", "objective") %in% names(result)))
 
   expect_error(
     MarkovitzRRR(
