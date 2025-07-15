@@ -52,6 +52,7 @@ penalty given by \verb{||X||_*}. Default is \code{'d'}.}
 \code{'p'} for modified Polyak:
 \verb{(step_size_constant + objective_iter - min\{objective_k | k=0,...,iter\}) / ||subgradient)||_F}.
 \code{'c'} for constant step size: \code{step_size_constant}.
+\code{'o'}for own redescending method: \code{step_size_constant / (iter + 1)^(1/3)}.
 Default is \code{'d'}.}
 
 \item{step_size_constant}{numeric constant determining the step size.

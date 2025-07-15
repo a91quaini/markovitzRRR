@@ -523,6 +523,15 @@ double MarkovitzRRRSolver::ComputeStepSizeModifiedPolyak() const {
 
 };
 
+// compute square summable not summable step_size
+double MarkovitzRRRSolver::ComputeStepSizeOwnMethod() const {
+
+  return (
+      step_size_constant * std::pow(static_cast<double>(iter + 1), -1.0/3.0)
+  );
+
+};
+
 ///////////////
 /// setters ///
 
@@ -716,6 +725,9 @@ std::function<double(void)> MarkovitzRRRSolver::SetStepSizeFunction(
 
   case 'p':
     return std::bind(&MarkovitzRRRSolver::ComputeStepSizeModifiedPolyak, this);
+
+  case 'o':
+    return std::bind(&MarkovitzRRRSolver::ComputeStepSizeOwnMethod, this);
 
   default:
     return std::bind(&MarkovitzRRRSolver::ComputeStepSizeConstant, this);

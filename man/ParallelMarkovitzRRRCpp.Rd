@@ -45,7 +45,9 @@ i.e., not summable vanishing: \code{step_size_constant / sqrt(iter + 1)}; \code{
 summable but not summable: \code{step_size_constant / (iter + 1)}; \code{'l'} for constant
 step length: \verb{step_size_constant / ||subgradient||_F}; \code{'p'} for modified Polyak:
 \verb{(step_size_constant + objective_iter - min\{objective_k | k=0,...,iter\}) / ||subgradient)||_F};
-\code{'c'} for constant step size: \code{step_size_constant}. Default is \code{'d'}.}
+\code{'c'} for constant step size: \code{step_size_constant}.
+\code{'o'}for own redescending method: \code{step_size_constant / (iter + 1)^(1/3)}.
+Default is \code{'d'}.}
 
 \item{step_size_constant}{numeric constant determining the step size.
 If zero or negative, it is internally set to \code{2./(min(sv(R))^2 + max(sv(R))^2 + lambda2)},

@@ -43,6 +43,7 @@
 #' `'p'` for modified Polyak:
 #' `(step_size_constant + objective_iter - min{objective_k | k=0,...,iter}) / ||subgradient)||_F`.
 #' `'c'` for constant step size: `step_size_constant`.
+#' `'o'`for own redescending method: `step_size_constant / (iter + 1)^(1/3)`.
 #' Default is `'d'`.
 #' @param step_size_constant numeric constant determining the step size.
 #' If it is zero or negative, then it is internally set to
@@ -153,7 +154,9 @@ MarkovitzRRR = function(
 #' summable but not summable: `step_size_constant / (iter + 1)`; `'l'` for constant
 #' step length: `step_size_constant / ||subgradient||_F`; `'p'` for modified Polyak:
 #' `(step_size_constant + objective_iter - min{objective_k | k=0,...,iter}) / ||subgradient)||_F`;
-#' `'c'` for constant step size: `step_size_constant`. Default is `'d'`.
+#' `'c'` for constant step size: `step_size_constant`.
+#' `'o'`for own redescending method: `step_size_constant / (iter + 1)^(1/3)`.
+#' Default is `'d'`.
 #' @param step_size_constant numeric constant determining the step size.
 #' If zero or negative, it is internally set to `2./(min(sv(R))^2 + max(sv(R))^2 + lambda2)`,
 #' where `sv` denotes singular values. Default is `0`.

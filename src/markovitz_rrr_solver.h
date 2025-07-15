@@ -121,6 +121,7 @@ public:
   double ComputeStepSizeSquareSummableNotSummable() const;
   double ComputeStepSizeConstantStepLength() const;
   double ComputeStepSizeModifiedPolyak() const;
+  double ComputeStepSizeOwnMethod() const;
 
   // compute `subgradient` at a given `X0`
   // depending on the values of `penalty_type`, `lambda1` and `lambda2`
